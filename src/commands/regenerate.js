@@ -13,7 +13,7 @@ import { syncPlayers, syncLeague, detectState } from '../lib/sync.js';
 import { buildIdentity } from '../lib/identity.js';
 import * as A from '../lib/analyze.js';
 import { renderIssue } from '../render/render.js';
-import { writeIssue } from '../lib/publish.js';
+import { writeIssue, syncImagesToDocs } from '../lib/publish.js';
 import { pickImages } from '../lib/images.js';
 import { upsertWeek } from '../lib/season-db.js';
 import { getTransactions, getWinners } from '../lib/sleeper.js';
@@ -65,7 +65,11 @@ async function run(){
   const rosterIds = rosters.map(r => r.roster_id);
   // load photos; output lands in docs/, so paths climb one level to /images
   const imgsRaw = pickImages({ season: state.season, week, count: 3, dir: './images' });
-  const images = imgsRaw.map(p => (p.startsWith('./') ? '../' + p.slice(2) : '../' + p));
+  // Pages serves the site root from docs/, so reference images RELATIVE to docs (images/x.jpg),
+  // not ../images/x.jpg which would climb above the site root and 404. syncImagesToDocs()
+  // mirrors the files into docs/images/.
+  syncImagesToDocs('./images');
+  const images = imgsRaw.map(p => p.replace(/^\.\//, ''));   // './images/x.jpg' -> 'images/x.jpg'
   // trade-desk data (staleness + tiers) from multi-year history if present
   // Trade Desk + Trade Winds intel AND this week's write-once trade-value snapshot.
   // Shared with generate.js (the scheduled run) so both produce an identical paper.

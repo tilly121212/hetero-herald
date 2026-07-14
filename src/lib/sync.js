@@ -62,18 +62,51 @@ export async function detectState(leagueId) {
 }
 
 // Decide the single action for this run.
-export function decideAction(state, alreadyPublished) {
+//
+// Rules:
+//  * CATCH UP, NEVER SKIP. We publish the OLDEST completed week that hasn't gone out yet —
+//    not just the newest. If a Tuesday is missed (Actions outage, API blip), the next run
+//    picks the gap up instead of silently moving on. One issue per run, so re-running the
+//    workflow repeatedly will walk through a backlog in order.
+//  * WEEK 17 IS THE FINALE. The last playoff week (playoffStart + 2) is published as the
+//    Season in Review — the championship game AND the year's retrospective in one issue.
+//    It is the final publication of the season; nothing goes out after it.
+//  * START GUARD. FIRST_PUBLISH (YYYY-MM-DD) can hold the paper until the date the first
+//    real week is complete, so nothing goes out mid-week-1 or in the preseason.
+export function decideAction(state, alreadyPublished, { today = new Date() } = {}) {
   // alreadyPublished: { weeks:Set, yearReview:Set(seasons) }
-  if (state.championshipDone && !alreadyPublished.yearReview.has(state.season)) {
-    return { type: 'YEAR_REVIEW', season: state.season };
+
+  // --- start-date guard -----------------------------------------------------------------
+  // e.g. FIRST_PUBLISH=2026-09-15 (the Tuesday after Week 1 finishes). Before that, sleep.
+  const firstPublish = process.env.FIRST_PUBLISH;
+  if (firstPublish) {
+    const gate = new Date(`${firstPublish}T00:00:00Z`);
+    if (!isNaN(gate) && today < gate) {
+      return { type: 'SLEEP', reason: `holding until first publish date (${firstPublish})` };
+    }
   }
-  if (state.phase === 'IN_SEASON' || state.phase === 'SEASON_DONE') {
-    const w = state.lastScored;
-    if (w >= 1 && !alreadyPublished.weeks.has(`${state.season}-w${w}`)) {
+
+  if (state.phase === 'PREGAME') return { type: 'SLEEP', reason: 'season not started' };
+
+  const champWeek = state.playoffStart + 2;   // the championship week = the finale
+
+  // --- catch up: oldest unpublished COMPLETED week wins ----------------------------------
+  // Weeks below the championship week publish as normal issues.
+  const lastScored = state.lastScored ?? 0;
+  const lastNormal = Math.min(lastScored, champWeek - 1);
+  for (let w = 1; w <= lastNormal; w++) {
+    if (!alreadyPublished.weeks.has(`${state.season}-w${w}`)) {
       return { type: 'WEEKLY', season: state.season, week: w };
     }
   }
-  if (state.phase === 'PREGAME') return { type: 'SLEEP', reason: 'season not started' };
+
+  // --- the finale: week 17, championship + season review --------------------------------
+  // Only once every earlier week is out, and only once that week has actually been scored.
+  const champDone = state.championshipDone || lastScored >= champWeek;
+  if (champDone && !alreadyPublished.yearReview.has(state.season)) {
+    return { type: 'YEAR_REVIEW', season: state.season, week: champWeek };
+  }
+
   return { type: 'SLEEP', reason: 'nothing new to publish' };
 }
 

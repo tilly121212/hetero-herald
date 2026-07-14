@@ -1,5 +1,49 @@
 # Changelog
 
+## v1.3.0 — publishing logic, self-seeding, images, index
+1. CATCH-UP PUBLISHING (the big one). The scheduler only ever looked at the LATEST week, so a
+   missed Tuesday (Actions outage, API blip) meant that week's paper was never published —
+   ever. It now publishes the OLDEST completed week that hasn't gone out yet, one per run. A
+   gap gets picked up automatically on the next run, and you can re-run the workflow
+   repeatedly to walk through a backlog in order. Nothing is ever silently skipped.
+2. WEEK 17 IS THE FINALE. The year review is now anchored to the CHAMPIONSHIP week (17) — the
+   championship game and the season retrospective in one final issue, and the last publication
+   of the season. It used to fall back to regWeeks (14), so the "review" was really a Week 14
+   paper that hadn't even seen the playoffs. It also fired BEFORE any unpublished weeks, so a
+   finished season would skip every week and jump straight to a bogus review (exactly what the
+   first live run did).
+3. SEASON START GUARD. A FIRST_PUBLISH variable (e.g. 2026-09-15, the Tuesday after Week 1
+   finishes) holds the paper until that date, so nothing goes out during the preseason or
+   mid-week-1. Set it once a year alongside LEAGUE_ID.
+4. SELF-SEEDING. The scheduled run assumed data-cache was already populated — on a fresh
+   checkout, or the first run after LEAGUE_ID points at a new season, there'd be no history and
+   no season DB, so rivalry records, movement arrows and standings would be silently empty. It
+   now detects that (history.json is stamped with the league it was built for) and rebuilds
+   history + backfills the season automatically. At rollover you change LEAGUE_ID and the
+   pipeline heals itself — no local commands, no manual uploads.
+5. IMAGES FIXED. All three photos were broken on the live site. GitHub Pages serves the site
+   root from docs/, so the ../images/ path climbed ABOVE the site root and 404'd. Images are now
+   mirrored into docs/images/ and referenced relatively, which works on Pages and locally.
+6. POWER RANKINGS — commentary removed. Rank, name, movement arrow, record and average only.
+   The per-team one-liners ranged from 4 to 25+ words, so the right column rendered much taller
+   than the left no matter how they were clipped. Pure data means every row is one line and the
+   columns balance by construction. (Also one fewer LLM call per issue.)
+7. INDEX PAGE rebuilt to match the paper: newsprint, Playfair/Old Standard type, double rules.
+   Seasons newest-first (2026 above 2025), issues newest-first within each season, and the
+   finale reads "Season in Review (Week 17)" while everything else is just "Week N".
+
+
+## v1.2.2 — CI fix: the scheduled run couldn't start
+GitHub Actions failed immediately with `node: .env: not found` (exit code 9). Every npm script
+ran `node --env-file=.env ...`, which forces Node to load a local .env file — but there IS no
+.env on GitHub (it's gitignored, because it holds the API key). In Actions the settings come
+from repo Secrets/Variables instead, so Node died before the generator ever ran.
+
+All scripts now use `--env-file-if-exists=.env`: it still reads .env when you run locally, and
+silently continues without it in CI, where the environment is supplied by Actions. Verified both
+paths. Also bumped the workflow to Node 22 (Actions is deprecating Node 20).
+
+
 ## v1.2.1 — production readiness (deploy blockers)
 Three bugs that would each have silently broken the live paper after deploying. None of them
 show up in local testing, which is exactly why they're worth calling out.

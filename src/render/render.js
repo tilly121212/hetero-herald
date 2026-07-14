@@ -786,65 +786,27 @@ export async function renderIssue(action, facts) {
         `<div class="stat-line" style="margin-top:6px"><span>${esc(g.winnerName)}</span><b>${num(g.winnerPts)}</b></div><div class="stat-line"><span>${esc(g.loserName)}</span><b>${num(g.loserPts)}</b></div></div>` };
   }
 
-  // POWER RANKINGS — performance-weighted, real movement arrows, saved for next week
+  // POWER RANKINGS — performance-weighted (90% scoring / 10% record), real movement arrows.
+  // NO commentary: rank, name, movement arrow, record and average only. The old per-team
+  // one-liners varied wildly in length (4 words to 25+), which made the two columns render
+  // at wildly different heights and look lopsided. Pure data keeps every row one line, so
+  // the columns balance by construction. No LLM call needed here at all.
   {
     const order = powerRankOrder(ctx);
     const prev = facts.leagueId ? prevRankings(facts.leagueId, wk) : null;
-    const df = { teams: order.map((r, i) => `${i + 1}. ${r.name}`),
-      note: `Write ONE short, cutting one-liner for EVERY team listed — all ${order.length} of them, no skipping, in this exact order. Each MUST be roughly the SAME LENGTH: between 6 and 12 words, one punchy clause each — no long run-on sentences, no team getting a paragraph while another gets four words. Consistency of length is important. Do NOT include their win-loss record or point totals — just the witty commentary. Return exactly ${order.length} numbered lines.` };
-    let blurbs = [];
-    try {
-      const raw = await callLLM(buildSectionPrompt('powerRankings', df, { name: facts.leagueName, week: wk }), { provider: provider() });
-      const clean = raw.replace(/<[^>]+>/g, '').split('\n').map(x => x.trim()).filter(Boolean);
-      blurbs = order.map((r, i) => {
-        const found = clean.find(l => l.startsWith(`${i + 1}.`) || l.startsWith(`${i + 1} `));
-        let b = found ? found.replace(/^\d+[\.\)]\s*/, '') : '';
-        b = b.replace(new RegExp('^' + r.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[\u2014:\-]*\\s*', 'i'), '')
-             .replace(/\(?\d+-\d+\)?/g, '')        // strip any record like 7-1 or (7-1)
-             .replace(/\([^)]*\)/g, '')            // strip any parenthetical (avg etc.)
-             .replace(/\*\*(.+?)\*\*/g, '$1').replace(/(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)/g, '$1')
-             .replace(EMOJI, '')
-             .replace(/^[\s\u2014:\-]+/, '').replace(/\s{2,}/g, ' ').trim();
-        return clipBlurb(b);
-      });
-      // if the model skipped any teams (common — it truncates), retry ONCE for the missing
-      // ones so both columns are evenly filled instead of left-only.
-      const missing = blurbs.map((b, i) => b ? null : i).filter(i => i != null);
-      if (missing.length) {
-        try {
-          const df2 = { teams: missing.map(i => `${i + 1}. ${order[i].name}`),
-            note: `Write ONE short cutting one-liner for EACH of these teams, numbered exactly as shown. No records or point totals. Return one numbered line each.` };
-          const raw2 = await callLLM(buildSectionPrompt('powerRankings', df2, { name: facts.leagueName, week: wk }), { provider: provider() });
-          const clean2 = raw2.replace(/<[^>]+>/g, '').split('\n').map(x => x.trim()).filter(Boolean);
-          for (const i of missing) {
-            const found = clean2.find(l => l.startsWith(`${i + 1}.`) || l.startsWith(`${i + 1} `));
-            if (found) {
-              let b = found.replace(/^\d+[\.\)]\s*/, '')
-                .replace(new RegExp('^' + order[i].name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[\u2014:\-]*\\s*', 'i'), '')
-                .replace(/\(?\d+-\d+\)?/g, '').replace(/\([^)]*\)/g, '')
-                .replace(EMOJI, '').replace(/^[\s\u2014:\-]+/, '').trim();
-              blurbs[i] = clipBlurb(b);
-            }
-          }
-        } catch {}
-      }
-      c.ok++; console.log('      \u2713 powerRankings');
-    } catch (e) { c.failed++; console.log(`      \u2717 powerRankings: ${e.message}`); blurbs = order.map(() => ''); }
 
     const lineFor = (r, i) => {
       const arrow = movementArrow(r.roster_id, i, prev);
       const red = i === order.length - 1 ? ' style="color:#8a2018"' : '';
-      const detail = r.rec ? `${r.rec} · ${r.avg} avg` : `${r.avg}`;
-      const blurb = blurbs[i] ? ` — ${esc(blurbs[i])}` : '';
-      return `<p${red}><b>${i + 1}. ${esc(r.name)}</b>${arrow}${blurb} <span style="color:#8a7f6a">(${detail})</span></p>`;
+      const detail = r.rec ? `${r.rec} \u00b7 ${num(r.avg)} avg` : `${num(r.avg)}`;
+      return `<p${red}><b>${i + 1}. ${esc(r.name)}</b>${arrow} <span style="color:#8a7f6a">(${detail})</span></p>`;
     };
-    // Explicit even split: first half in the left column, second half in the right,
-    // so a 14-team league always shows 7 and 7 (CSS auto-flow balances by height -> 6/8).
+    // Explicit even split: first half left, second half right, so 14 teams give a clean 7/7.
     const half = Math.ceil(order.length / 2);
     const leftCol = order.slice(0, half).map((r, i) => lineFor(r, i)).join('');
     const rightCol = order.slice(half).map((r, i) => lineFor(r, i + half)).join('');
     const lines = `<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:28px"><div>${leftCol}</div><div>${rightCol}</div></div>`;
-    s.powerRankings = { tag: `Week ${wk} · By Performance, Not Just Record`, bodyHtml: lines };
+    s.powerRankings = { tag: `Week ${wk} \u00b7 By Performance, Not Just Record`, bodyHtml: lines };
     if (facts.leagueId) saveRankings(facts.leagueId, wk, order.map(r => r.roster_id));
   }
 

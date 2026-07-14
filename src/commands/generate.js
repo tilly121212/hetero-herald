@@ -6,11 +6,12 @@ import { syncPlayers, detectState, decideAction, syncLeague } from '../lib/sync.
 import { buildIdentity } from '../lib/identity.js';
 import * as A from '../lib/analyze.js';
 import { renderIssue } from '../render/render.js';
-import { writeIssue, loadPublished, markPublished } from '../lib/publish.js';
+import { writeIssue, loadPublished, markPublished, syncImagesToDocs } from '../lib/publish.js';
 import { pickImages } from '../lib/images.js';
 import { upsertWeek } from '../lib/season-db.js';
 import { getWinners } from '../lib/sleeper.js';
 import { loadFrontOffice } from '../lib/frontoffice.js';
+import { ensureSeeded } from '../lib/bootstrap.js';
 
 const LEAGUE_ID = process.env.LEAGUE_ID || '1323107533136596992';
 
@@ -30,8 +31,18 @@ async function run() {
     return;
   }
 
+  // Make sure the cache actually matches this league before we write a paper. On a fresh
+  // checkout — or the first run after LEAGUE_ID is pointed at a new season — this rebuilds
+  // history.json and backfills the season DB automatically, so rivalry records, movement
+  // arrows and standings aren't silently empty. No-op when the data is already good.
+  await ensureSeeded(LEAGUE_ID, state.lastScored);
+
   console.log('[3/5] Pulling week data + running engines...');
-  const week = action.type === 'WEEKLY' ? action.week : state.regWeeks;
+  // decideAction now supplies the week for BOTH kinds of issue — including the year review,
+  // which is anchored to the CHAMPIONSHIP week (17), not the last regular-season week. It
+  // used to fall back to state.regWeeks (14), so the "review" was really a week-14 paper
+  // that hadn't even seen the playoffs.
+  const week = action.week ?? state.regWeeks;
   const { players, users, rosters, matchups } = await syncLeague(LEAGUE_ID, week);
   const identity = buildIdentity(users, rosters, { name: state.leagueName, season: state.season });
 
@@ -40,7 +51,11 @@ async function run() {
   upsertWeek(LEAGUE_ID, state.season, week, games);
   const rosterIds = rosters.map(r => r.roster_id);
   const imgsRaw = pickImages({ season: state.season, week, count: 3, dir: './images' });
-  const images = imgsRaw.map(p => (p.startsWith('./') ? '../' + p.slice(2) : '../' + p));
+  // Pages serves the site root from docs/, so reference images RELATIVE to docs (images/x.jpg),
+  // not ../images/x.jpg which would climb above the site root and 404. syncImagesToDocs()
+  // mirrors the files into docs/images/.
+  syncImagesToDocs('./images');
+  const images = imgsRaw.map(p => p.replace(/^\.\//, ''));   // './images/x.jpg' -> 'images/x.jpg'
   let bracket = null;
   if (week > state.regWeeks) {
     try { const b = await getWinners(LEAGUE_ID); if (Array.isArray(b) && b.length) bracket = b; } catch {}

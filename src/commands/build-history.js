@@ -16,7 +16,7 @@ async function run() {
   const chain = await getLeagueHistory(LEAGUE_ID); // [current, ...older]
   console.log(`Found ${chain.length} seasons:`, chain.map(l => `${l.season} (${l.name})`).join(' → '));
 
-  const history = { builtAt: Date.now(), seasons: [], games: [], champions: [], ownerNames: {} };
+  const history = { builtAt: Date.now(), builtForLeague: LEAGUE_ID, seasons: [], games: [], champions: [], ownerNames: {} };
 
   for (const league of chain) {
     const lid = league.league_id;
