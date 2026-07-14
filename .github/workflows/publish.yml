@@ -1,15 +1,43 @@
+# Free automation via GitHub Actions. Runs on a schedule, self-updates the league,
+# and publishes whatever is due (weekly issue, year review, or nothing in offseason).
+# Cost: $0 — Actions minutes are free for public repos (and 2,000 min/mo on private).
+#
+# Setup (one time):
+#   1. Push this repo to GitHub.
+#   2. Repo Settings -> Secrets and variables -> Actions:
+#        Secret:    LLM_API_KEY  = your API key (Gemini / OpenAI / Anthropic)
+#        Variables: LEAGUE_ID    = current-season Sleeper league id
+#                   LLM_PROVIDER = 'gemini' (or 'openai' / 'anthropic')
+#   3. Repo Settings -> Pages -> Source: "Deploy from branch", branch: main, folder: /docs.
+#   4. That's it. The schedule below runs it; results land in /docs and go live on Pages.
+#
+# IMPORTANT — why we commit data-cache/ back to the repo:
+#   Each Actions run starts from a FRESH checkout and the container is destroyed afterwards.
+#   The Herald keeps state that must survive between weekly runs:
+#     * data-cache/trade-values.json        weekly FantasyCalc snapshots. IRREPLACEABLE —
+#                                           FantasyCalc has no historical API, so a lost week
+#                                           is gone forever, and Revisionist History needs it.
+#     * data-cache/revisionist-graded.json  which trades were already graded (graded-once-ever).
+#     * data-cache/season-*.json            season DB: prior power rankings (movement arrows)
+#                                           and Trade Winds rumor memory.
+#     * data-cache/history.json             past-season game log.
+#   If we only committed docs/, all of that would be lost every week and the snapshots would
+#   never accumulate. So the commit step below includes data-cache/.
+#   (players.json is gitignored — a big file that re-downloads from Sleeper cheaply.)
+
 name: Publish The Hetero Herald
 
 on:
   schedule:
+    # Tuesday 15:00 UTC (~7am PT) — after Monday Night Football finalizes.
     - cron: '0 15 * * 2'
-  workflow_dispatch: {}
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
 
 permissions:
-  contents: write
+  contents: write         # allow committing generated files back to the repo
 
 concurrency:
-  group: herald-publish
+  group: herald-publish   # never let two runs race each other into a push conflict
   cancel-in-progress: false
 
 jobs:
@@ -20,30 +48,35 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - run: npm install
 
       - name: Generate this week's issue (if any is due)
         env:
           LEAGUE_ID: ${{ vars.LEAGUE_ID }}
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}   # 'gemini' | 'openai' | 'anthropic'
+          # the same secret is offered under each provider's expected name, so switching
+          # LLM_PROVIDER is the only change needed to swap models.
           GEMINI_API_KEY: ${{ secrets.LLM_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.LLM_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.LLM_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}   # optional override
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}   # optional override
         run: npm run generate
 
       - name: Commit & publish any new issue (and persist the caches)
         run: |
           git config user.name  "Herald Bot"
           git config user.email "bot@users.noreply.github.com"
+          # docs/      = the published paper
+          # data-cache = state that MUST survive to next week (see header note above)
           git add docs/ data-cache/ || true
           if git diff --staged --quiet; then
             echo "Nothing to publish this week."
           else
             git commit -m "Herald: auto-publish $(date -u +%F)"
+            # another run (or a manual push) may have landed first — rebase, don't clobber
             git pull --rebase --autostash origin main || true
             git push
           fi
