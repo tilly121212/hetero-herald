@@ -1,6 +1,7 @@
 {
   "weeks": [
-    "2025-w1"
+    "2025-w1",
+    "2025-w2"
   ],
   "yearReview": [],
   "list": [
@@ -10,6 +11,13 @@
       "week": 1,
       "file": "2025-week-1.html",
       "at": 1784005085706
+    },
+    {
+      "kind": "weekly",
+      "season": "2025",
+      "week": 2,
+      "file": "2025-week-2.html",
+      "at": 1784007531497
     }
   ]
 }
