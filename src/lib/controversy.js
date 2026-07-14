@@ -97,6 +97,22 @@ export function planControversy(subs, weekFacts, { season, week } = {}) {
 
 // Writer prompt for the section.
 export function controversyPrompt(plan, persona, identity) {
+  // The real cast of the league. The submitted-take branch used to get NOTHING but the take
+  // itself, so a vague submission ("fuk that guy") left the model with no real names to reach
+  // for — and it duly invented one, then built an entire fake incident around a manager who
+  // does not exist. Inventing DRAMA is the whole point of this column; inventing PEOPLE is not.
+  const teamList = (() => {
+    try {
+      // identity exposes rosterToOwner — its keys ARE the roster ids.
+      const ids = Object.keys(identity?.rosterToOwner || {});
+      const names = ids.map(rid => identity.nameOf(Number(rid))).filter(Boolean);
+      return names.length ? names : null;
+    } catch { return null; }
+  })();
+  const castRule = teamList
+    ? `\n\nTHE LEAGUE'S ONLY TEAMS (this is the complete cast — every manager you name MUST be one of these, spelled exactly):\n${teamList.map(n => `- ${esc(n)}`).join('\n')}\nHARD RULE: NEVER invent a manager, team, or person. If the take doesn't make clear who it's aimed at, pick one of the real teams above and pin it on them. You may invent the DRAMA freely — the benching, the betrayal, the scandal, the anonymous sources — but every name that appears must come from that list.`
+    : `\n\nHARD RULE: NEVER invent a manager, team, or person's name. Only refer to teams that actually appear in the data you've been given.`;
+
   if (plan.mode === 'submitted') {
     return `Write a MEATY tabloid "Controversy" column (140-200 words) in the voice of
 ${persona.name}. A league member submitted this hot take — treat it as an explosive
@@ -104,7 +120,7 @@ ${persona.name}. A league member submitted this hot take — treat it as an expl
 absurd heights, pick a side, name the feud, demand accountability that will never come.
 Football-only; never real-world/personal. Fill the space — this is the juiciest column
 in the paper. STYLE: no ALL-CAPS words for emphasis (reads shouty), no markdown, no emoji.
-SUBMITTED TAKE (from ${esc(plan.submission.name)}): "${esc(plan.submission.take)}"`;
+SUBMITTED TAKE (from ${esc(plan.submission.name)}): "${esc(plan.submission.take)}"${castRule}`;
   }
 
   // Rotate the ANGLE each week so it isn't always a conspiracy. Seed by week so a given

@@ -20,6 +20,26 @@ import { valueAt, hasSnapshot } from './trade-values.js';
 
 const CACHE = './data-cache';
 const GRADED_FILE = `${CACHE}/revisionist-graded.json`;
+const SNAP_GRADED_FILE = `${CACHE}/gradetrade-graded.json`;   // preserved by reset.js
+
+// --- "graded once ever" memory for GRADE THE TRADE ------------------------------------
+// Separate from Revisionist's memory: a trade can legitimately be graded fresh (Grade the
+// Trade) and later revisited years on (Revisionist History). This one exists so the weekly
+// report card works through a BACKLOG — several trades in one week get graded one per week,
+// in order — without ever grading the same trade twice.
+function loadSnapGraded() {
+  if (!existsSync(SNAP_GRADED_FILE)) return { graded: {} };
+  try { return JSON.parse(readFileSync(SNAP_GRADED_FILE, 'utf8')); } catch { return { graded: {} }; }
+}
+export function alreadySnapGraded(tradeId) {
+  return !!loadSnapGraded().graded[String(tradeId)];
+}
+export function markSnapGraded(tradeId, meta = {}) {
+  const store = loadSnapGraded();
+  store.graded[String(tradeId)] = { at: Date.now(), ...meta };
+  if (!existsSync(CACHE)) mkdirSync(CACHE, { recursive: true });
+  writeFileSync(SNAP_GRADED_FILE, JSON.stringify(store));
+}
 
 // --- "graded once ever" memory (keyed by Sleeper transaction id) ---
 function loadGraded() {

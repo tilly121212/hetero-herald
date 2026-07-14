@@ -3,7 +3,6 @@
 // by the Action). Also the index page listing every issue as clickable links.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs';
-import { pickImages } from './images.js';
 
 const DOCS = './docs';                    // GitHub Pages serves from /docs
 const LEDGER = `${DOCS}/published.json`;
@@ -80,17 +79,7 @@ function rebuildIndex(list) {
       const label = it.kind === 'review'
         ? `Season in Review (Week ${it.week ?? 17})`
         : `Week ${it.week}`;
-      // Each issue's photos are seeded by season+week, so we can recompute that issue's LEDE
-      // image and show it as a small thumbnail — no extra state to store.
-      let thumb = '';
-      try {
-        const picks = pickImages({ season: s, week: it.week, count: 1, dir: './images' });
-        if (picks.length) {
-          const file = picks[0].replace(/^\.\//, '');       // 'images/x.jpg' (relative to docs/)
-          thumb = `<img class="thumb" src="./${file}" alt="" loading="lazy">`;
-        }
-      } catch {}
-      return `      <li><a href="./${it.file}">${thumb}<span class="issue">${s} \u00b7 ${label}</span><span class="rule"></span></a></li>`;
+      return `      <li><a href="./${it.file}"><span class="issue">${s} \u00b7 ${label}</span><span class="rule"></span></a></li>`;
     }).join('\n');
     return `    <section>
       <h2>${s}</h2>
@@ -132,9 +121,6 @@ ${rows}
   li a:hover, li a:hover .issue{color:#7c2118}
   li a:hover .issue{text-decoration:underline;text-underline-offset:3px}
   .issue{font-family:'Playfair Display',serif;font-weight:700;font-size:19px;white-space:nowrap;color:#1a1713}
-  /* small newsprint thumbnail per issue */
-  .thumb{flex:none;width:46px;height:34px;object-fit:cover;filter:grayscale(1) contrast(1.08);
-         border:1px solid var(--rule);background:var(--faint)}
   .rule{flex:1}
   footer{margin-top:56px;border-top:3px double var(--rule);padding-top:12px;text-align:center;
          font-family:'Special Elite',monospace;font-size:10.5px;letter-spacing:.12em;

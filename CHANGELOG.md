@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.3.2 — early-season framing, controversy cast, grade-the-trade memory
+1. NO MORE PLAYOFF TALK IN WEEK 2. The lead was being told, every single week from Week 1, to
+   "make it OBVIOUS why this game matters to the playoff picture" and was handed standings
+   positions as though they were seeds. The result was exactly what you'd expect: a 1-1 team
+   described as staring down "elimination" and "playoff dread" two weeks into a fourteen-week
+   season. The framing now scales with the calendar — weeks 1-4 are about the GAME (playoffs,
+   seeding, the bubble and elimination are off-limits entirely), the middle weeks may hint at
+   where teams are heading, and only the closing stretch gets the full stakes treatment.
+2. CONTROVERSY CORNER STOPS INVENTING PEOPLE. A vague submitted take ("fuk that guy") left the
+   model with no real name to reach for, so it conjured a manager who does not exist — "Maxwell
+   'The Malicious' Miller" — and built an entire fake scandal around him. The submitted-take
+   prompt was being handed the take and nothing else; it now gets the league's complete roster
+   of real teams and a hard rule: invent the DRAMA freely, never the PEOPLE. If a take doesn't
+   say who it's aimed at, pin it on a real team.
+3. GRADE THE TRADE NO LONGER RE-GRADES THE SAME TRADE. It had no memory, so a week with no new
+   trade would reach back and re-grade the previous week's — which is why weeks 1 and 2 both
+   graded the same deal. It now remembers every trade it has covered (a graded-once-ever store,
+   preserved by reset) and works through a BACKLOG one per issue: three trades in one week get
+   graded across three papers, in order, and none is ever covered twice or left stranded.
+4. GRADE THE TRADE now values a deal using the snapshot from THE WEEK IT WAS MADE, not today's
+   prices — the honest question for a fresh trade is "was this fair at the time?". Then-vs-now
+   remains Revisionist History's job, keeping the two features cleanly separated.
+5. POWER RANKINGS OVERFLOW FIXED (a regression from v1.3.1). Forcing rows onto one line made
+   long team names punch out of the column and bleed into the standings table beside them. A
+   flex child won't shrink below its content without min-width:0 — with that in place the name
+   ellipses properly and the row stays inside its column.
+6. INDEX — the per-issue thumbnails are gone; they looked worse than the plain list.
+
+
 ## v1.3.1 — snapshot integrity, playoff data, week picker, index polish
 1. TRADE-VALUE SNAPSHOTS CAN NO LONGER BE POISONED BY A TEST RUN. FantasyCalc only ever
    returns TODAY'S values. That's correct in live operation (the paper runs the Tuesday right

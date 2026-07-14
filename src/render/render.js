@@ -8,7 +8,7 @@ import { broadsheetTemplate } from './template.js';
 import { playoffRace, playoffRaceActive } from '../lib/playoffs.js';
 import { buildStandings, benchCrimeReport } from '../lib/analyze.js';
 import { weeksThrough, saveRankings, prevRankings, saveRumors, priorRumors } from '../lib/season-db.js';
-import { deltaReason, markGraded } from '../lib/revisionist.js';
+import { deltaReason, markGraded, markSnapGraded } from '../lib/revisionist.js';
 import { planControversy, controversyPrompt } from '../lib/controversy.js';
 import { rivalry as rivalryStats } from '../lib/analyze.js';
 import { newlyEliminated, obituaryFacts, obituaryPrompt } from '../lib/obituary.js';
@@ -504,15 +504,36 @@ export async function renderIssue(action, facts) {
     const wPrevSeed = ctx.prevRankOf[gow?.winner], lPrevSeed = ctx.prevRankOf[gow?.loser];
     const moveNote = (wRank && wPrevSeed && wRank !== wPrevSeed ? ` ${gow.winnerName} moved from #${wPrevSeed} to #${wRank} after this result.` : '')
       + (lRank && lPrevSeed && lRank !== lPrevSeed ? ` ${gow.loserName} slipped from #${lPrevSeed} to #${lRank}.` : '');
+    // How much should this game be framed around the PLAYOFF picture? That depends entirely
+    // on how deep into the season we are. Telling the model to "make the playoff implications
+    // obvious" in Week 2 produced exactly what you'd expect: a 1-1 team described as staring
+    // down "elimination" and "playoff dread", and a meaningless Week-2 standings position
+    // reported as though it were a locked-in seed. Early on, the story is the GAME.
+    const regWeeks = facts.regWeeks || 14;
+    const phase = wk <= 4 ? 'EARLY' : (wk <= Math.min(9, regWeeks - 5) ? 'MID' : 'LATE');
+
+    const earlyNote = `It is only WEEK ${wk} of ${regWeeks}. Do NOT frame this around the playoffs — nobody is "on the bubble", nobody is near "elimination", and a standings position this early is noise, not a seed. Do NOT mention playoff seeding, the bubble, or elimination at all. The story is THE GAME ITSELF: the performance, the collapse, the surprise, what it says about these two teams. Records (${wRec} and ${lRec}) are fine to state plainly.`;
+
+    const midNote = `It is week ${wk} of ${regWeeks} (7 of 14 make the playoffs). The playoff picture is starting to take shape, but it is NOT settled — you may touch on what this result suggests about where these teams are heading, but do not treat current position as a locked seed and do not talk about elimination. The GAME is still the main story.`;
+
+    const lateNote = `STAKES: ${gow.winnerName} is ${wRec} (was #${wPrevSeed ?? wRank} going in, now #${wRank} of 14); ${gow.loserName} is ${lRec} (was #${lPrevSeed ?? lRank}, now #${lRank}). It is week ${wk} of ${regWeeks} — 7 teams make the playoffs, and the race is REAL now.${moveNote} Make it clear why this game matters to the playoff picture (seeding, the bubble, a contender stumbling). IMPORTANT: describe each team by where they stood GOING INTO the game and how this result MOVED them — never call a team "the #${lRank} seed" as if they were already there before losing; say "the now-#${lRank} seed" or "fell from #${lPrevSeed ?? '?'}".`;
+
     const stakesNote = inPlayoffs
-      ? `${playoffBrief} This is the featured playoff game: ${gow?.winnerName} defeated ${gow?.loserName} ${gow?.winnerPts}-${gow?.loserPts}. Write it as a PLAYOFF story — the winner ADVANCES, the loser is ELIMINATED (unless this is the championship, in which case the winner is CHAMPION). Lead with the drama and the stakes of surviving/advancing.`
+      ? `${playoffBrief} This is the featured playoff game: ${gow?.winnerName} defeated ${gow?.loserName} ${num(gow?.winnerPts)}-${num(gow?.loserPts)}. Write it as a PLAYOFF story — the winner ADVANCES, the loser is ELIMINATED (unless this is the championship, in which case the winner is CHAMPION). Lead with the drama and the stakes of surviving/advancing.`
+      : (phase === 'EARLY')
+      ? earlyNote
       : (wRank && lRank)
-      ? `STAKES: ${gow.winnerName} is ${wRec} (was #${wPrevSeed ?? wRank} going in, now #${wRank} of 14); ${gow.loserName} is ${lRec} (was #${lPrevSeed ?? lRank}, now #${lRank}). It is week ${wk} of ${facts.regWeeks || 14} — 7 teams make the playoffs.${moveNote} Make it OBVIOUS why this game matters to the playoff picture (seeding, bubble, a contender stumbling). IMPORTANT: describe each team by where they stood GOING INTO the game and how this result MOVED them — never call a team "the #${lRank} seed" as if they were already there before losing; say "the now-#${lRank} seed" or "fell from #${lPrevSeed ?? '?'}". Lead with the stakes.`
+      ? (phase === 'MID' ? midNote : lateNote)
       : `This is the marquee game of the week — make clear why it stands out.`;
     const df = { winner: gow?.winnerName, loser: gow?.loserName,
       winnerPts: gow?.winnerPts, loserPts: gow?.loserPts, margin: gow?.margin,
       winnerRecord: wRec, loserRecord: lRec, winnerSeed: wRank, loserSeed: lRank,
-      note: `${stakesNote} Write a HEADLINE, a one-sentence DEK, a punchy PULL-QUOTE, and the BODY. Format exactly as: HED: ...\\nDEK: ...\\nPULL: ...\\nBODY: ... — centered on THIS ONE GAME (${gow?.winnerName} vs ${gow?.loserName}). Break the BODY into 2-3 short paragraphs (separate them with a blank line). RULES: Do NOT recap or narrate any OTHER matchup (no other game's play-by-play or score as its own story). You MAY reference other teams ONLY when it affects the PLAYOFF/STANDINGS implications of THIS game — e.g. "held their seed only because their pursuers also lost," "the loss dropped them behind X for the final spot," "made the playoffs in spite of the loss because rivals stumbled." Keep the focus on this game and what it means for the standings.` };
+      // The cross-reference rule also has to respect the phase: in the early weeks there IS no
+      // playoff picture to reference, so inviting "held their seed / the final spot" language
+      // would drag the playoffs straight back in through the side door.
+      note: `${stakesNote} Write a HEADLINE, a one-sentence DEK, a punchy PULL-QUOTE, and the BODY. Format exactly as: HED: ...\\nDEK: ...\\nPULL: ...\\nBODY: ... — centered on THIS ONE GAME (${gow?.winnerName} vs ${gow?.loserName}). Break the BODY into 2-3 short paragraphs (separate them with a blank line). RULES: Do NOT recap or narrate any OTHER matchup (no other game's play-by-play or score as its own story). ${phase === 'EARLY'
+        ? `Keep the focus squarely on this game. Do NOT bring in the playoff race, seeding, the bubble or elimination — it is far too early for any of that to mean anything.`
+        : `You MAY reference other teams ONLY when it affects the PLAYOFF/STANDINGS implications of THIS game — e.g. "held their seed only because their pursuers also lost," "the loss dropped them behind X for the final spot." Keep the focus on this game and what it means for the standings.`}` };
     let hed = gow ? `${gow.winnerName} Edges ${gow.loserName}` : `Week ${wk}`;
     let dek = '', pull = '', body = '';
     try {
@@ -799,14 +820,17 @@ export async function renderIssue(action, facts) {
       const arrow = movementArrow(r.roster_id, i, prev);
       const red = i === order.length - 1 ? 'color:#8a2018;' : '';
       const detail = r.rec ? `${r.rec} \u00b7 ${num(r.avg)} avg` : `${num(r.avg)}`;
-      // ONE LINE PER ROW. A long team name (or one with an emoji) used to wrap onto a second
-      // line, which made one column taller than the other. The row is a flex line that never
-      // wraps; the NAME is the only part allowed to shrink, and it ellipses if it must, so
-      // the rank, arrow and stats always stay visible and every row is exactly one line tall.
-      return `<p style="${red}display:flex;align-items:baseline;gap:6px;white-space:nowrap;overflow:hidden">` +
-        `<b style="flex:0 1 auto;overflow:hidden;text-overflow:ellipsis">${i + 1}. ${esc(r.name)}</b>` +
-        `<span style="flex:none">${arrow}</span>` +
-        `<span style="flex:none;color:#8a7f6a">(${detail})</span></p>`;
+      // ONE LINE PER ROW, and it must STAY INSIDE THE COLUMN.
+      // The row is a non-wrapping flex line. The NAME is the only part allowed to shrink —
+      // and it needs BOTH `min-width:0` and `overflow:hidden` to do so: a flex child refuses
+      // to shrink below its content width without min-width:0, which is why long names were
+      // punching out of the column and bleeding into the standings table beside it. The
+      // record/average is never truncated (it's the actual information), so a very long team
+      // name simply ellipses.
+      return `<p style="${red}display:flex;align-items:baseline;gap:6px;overflow:hidden">` +
+        `<b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i + 1}. ${esc(r.name)}</b>` +
+        `<span style="flex:none;white-space:nowrap">${arrow}</span>` +
+        `<span style="flex:none;white-space:nowrap;color:#8a7f6a">(${detail})</span></p>`;
     };
     // Explicit even split: first half left, second half right, so 14 teams give a clean 7/7.
     const half = Math.ceil(order.length / 2);
@@ -976,6 +1000,11 @@ export async function renderIssue(action, facts) {
           ],
           verdictHtml: verdict,
         };
+        // Remember it — GRADED ONCE, EVER. Marked only now that it has actually rendered, so a
+        // failed LLM call doesn't silently burn the trade and skip it forever. This is what
+        // stops next week's paper re-grading a trade this week already covered, and it's what
+        // lets a week with several trades drain one per issue.
+        try { markSnapGraded(gt.txnId, { week: wk, season: facts.season }); } catch {}
       }
     }
   }

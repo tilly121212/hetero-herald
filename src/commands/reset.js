@@ -17,7 +17,8 @@ const PRESERVE = [
   /trade-?values?/i,      // e.g. trade-values.json, tradeValues-*.json
   /value-?snapshots?/i,   // e.g. value-snapshots.json
   /fantasycalc.*history/i,
-  /revisionist-?graded/i, // which trades have already been graded (graded-once-ever memory)
+  /revisionist-?graded/i, // which trades Revisionist has already covered (graded-once-ever)
+  /gradetrade-?graded/i,  // which trades Grade the Trade has already covered (graded-once-ever)
 ];
 const isProtected = (name) => PRESERVE.some(rx => rx.test(name));
 

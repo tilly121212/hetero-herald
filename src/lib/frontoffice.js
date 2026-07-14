@@ -11,7 +11,8 @@ import { getTransactions } from './sleeper.js';
 import * as A from './analyze.js';
 import { collectTrades, tradeRecency, traderTiers, getFantasyCalcValues, gradeWeeklyTrades } from './tradedesk.js';
 import { recordSnapshot } from './trade-values.js';
-import { buildRevisionist } from './revisionist.js';
+import { buildRevisionist, alreadySnapGraded } from './revisionist.js';
+import { valueAt, hasSnapshot } from './trade-values.js';
 
 /**
  * Everything the Trade Desk / Trade Winds sections need.
@@ -69,19 +70,44 @@ export async function loadFrontOffice(leagueId, rosters, identity, week, playerM
       console.log(`      \u00b7 week ${week} is historical (latest scored: ${lastScored}) \u2014 not banking a snapshot (today's values aren't week ${week}'s values)`);
     }
 
-    // GRADE THE TRADE — a FRESH trade (this week or one back), graded on current values.
+    // GRADE THE TRADE — a report card on a trade, judged on the values FROM THE WEEK IT WAS
+    // MADE (not today's). That's the honest question for a fresh trade — "was this fair at the
+    // time?" — and it keeps this cleanly separate from Revisionist History, whose whole job is
+    // then-vs-now.
+    //
+    // It also works through a BACKLOG: several trades in one week are graded ONE PER WEEK
+    // (this week's, then last week's leftovers), and a persistent memory means a trade is
+    // never graded twice — which is exactly what was happening, with week 2 re-grading the
+    // trade week 1 had already covered.
     try {
       const playerName = (pid) => playerMap[String(pid)]?.name || `Player ${pid}`;
       const rosterName = (rid) => identity.nameOf(rid);
-      let graded = [];
-      for (const w of [week, week - 1]) {
-        const g = gradeWeeklyTrades(trades, w, fcValues, playerName, rosterName).map(x => ({ ...x, gradedWeek: w }));
-        graded = graded.concat(g);
-        if (graded.length) break;              // prefer the most recent week that had a trade
+      // Newest first, and look back far enough that a BACKLOG actually drains. With a strict
+      // "this week or last week" window, three trades in one week would strand the third
+      // forever: by the time the queue reached it, its week had fallen out of range. We
+      // consider any trade from this season that hasn't been graded yet, newest first, so
+      // recent deals are always covered first and older ones still get their turn.
+      const candidates = trades
+        .filter(t => t.week != null && t.week <= week)
+        .filter(t => !alreadySnapGraded(t.transaction_id))
+        .sort((a, b) => (b.week - a.week) || (b.when - a.when));
+
+      for (const t of candidates) {
+        // Value the trade with the snapshot from ITS OWN week. If we never captured that week
+        // (we started collecting later), fall back to the live values rather than skip the
+        // grade entirely — a fresh trade is still worth a report card, and unlike Revisionist
+        // nothing here is claiming to be a historical comparison.
+        const useSnapshot = hasSnapshot(season, t.week);
+        const valuesFor = useSnapshot
+          ? new Proxy({}, { get: (_, pid) => valueAt(season, t.week, String(pid)) ?? 0 })
+          : fcValues;
+        const graded = gradeWeeklyTrades([t], t.week, valuesFor, playerName, rosterName);
+        const pick = graded[0];
+        if (pick && pick.sides?.length === 2) {
+          gradeThisTrade = { ...pick, gradedWeek: t.week, valuedFrom: useSnapshot ? `week ${t.week}` : 'current' };
+          break;                                   // ONE per week
+        }
       }
-      graded.sort((a, b) => b.delta - a.delta);   // one per week: the most lopsided
-      const pick = graded[0];
-      if (pick && pick.sides?.length === 2) gradeThisTrade = pick;
     } catch { gradeThisTrade = null; }
 
     // REVISIONIST HISTORY — an OLD trade whose value has since diverged. Needs a banked
