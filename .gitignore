@@ -1,0 +1,6 @@
+node_modules/
+data-cache/players.json
+demo-output/
+*.log
+.DS_Store
+.env
