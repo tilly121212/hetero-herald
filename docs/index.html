@@ -1,10 +1,52 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Hetero Herald — Archive</title>
-<style>body{font-family:Georgia,serif;background:#f4efe4;color:#1a1713;max-width:640px;margin:40px auto;padding:0 20px}
-h1{font-family:'Playfair Display',serif;border-bottom:3px double #1a1713;padding-bottom:10px}
-h2{font-family:monospace;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#7c2118;margin-top:28px}
-ul{list-style:none;padding:0}li{padding:6px 0;border-bottom:1px solid #e7dfce}
-a{color:#1a1713;text-decoration:none}a:hover{color:#7c2118}</style></head>
-<body><h1>The Hetero Herald</h1><p><em>The Newspaper of Record. Every issue, every season.</em></p>
-<section><h2>2025</h2><ul><li><a href="./2025-review.html">2025 · Season in Review</a></li></ul></section></body></html>
+<title>The Hetero Herald &mdash; Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root{ --paper:#f4efe4; --ink:#1a1713; --oxblood:#7c2118; --stamp:#9a8f7a; --rule:#2a251e; --faint:#e7dfce; }
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);margin:0;padding:48px 20px 80px;
+       font-family:'Old Standard TT',Georgia,serif;
+       background-image:radial-gradient(circle at 20% 30%, rgba(0,0,0,.015) 1px, transparent 1px);
+       background-size:4px 4px;}
+  .wrap{max-width:720px;margin:0 auto}
+  header{text-align:center;border-bottom:3px double var(--rule);padding-bottom:18px;margin-bottom:6px}
+  h1{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(38px,8vw,64px);
+     letter-spacing:-.01em;margin:0;line-height:1}
+  .tagline{font-family:'Old Standard TT',serif;font-style:italic;color:#5b5142;margin:10px 0 0;font-size:15px}
+  .flag{display:flex;justify-content:space-between;font-family:'Special Elite',monospace;
+        font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--stamp);
+        border-bottom:1px solid var(--rule);padding:8px 0;margin-bottom:34px}
+  section{margin-bottom:34px}
+  h2{font-family:'Special Elite',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+     color:var(--oxblood);margin:0 0 4px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+  ul{list-style:none;padding:0;margin:0}
+  li a{display:flex;align-items:baseline;gap:10px;text-decoration:none;color:var(--ink);
+       padding:11px 2px;border-bottom:1px solid var(--faint);transition:color .12s}
+  li a:hover{color:var(--oxblood)}
+  li a:hover .issue{text-decoration:underline;text-underline-offset:3px}
+  .issue{font-family:'Playfair Display',serif;font-weight:700;font-size:19px;white-space:nowrap}
+  .rule{flex:1}
+  footer{margin-top:56px;border-top:3px double var(--rule);padding-top:12px;text-align:center;
+         font-family:'Special Elite',monospace;font-size:10.5px;letter-spacing:.12em;
+         text-transform:uppercase;color:var(--stamp)}
+  .empty{font-style:italic;color:var(--stamp);padding:12px 0}
+</style></head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>The Hetero Herald</h1>
+      <p class="tagline">The Newspaper of Record. Every issue, every season.</p>
+    </header>
+    <div class="flag"><span>The Archive</span><span>Filed by V. Malloy</span></div>
+    <section>
+      <h2>2025</h2>
+      <ul>
+      <li><a href="./2025-week-1.html"><span class="issue">2025 · Week 1</span><span class="rule"></span></a></li>
+      </ul>
+    </section>
+    <footer>The Hetero Herald &middot; Est. 2023</footer>
+  </div>
+</body></html>
