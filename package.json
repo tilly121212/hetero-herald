@@ -1,18 +1,18 @@
 {
   "name": "gridiron-gazette",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "description": "The Hetero Herald \u2014 auto-generated fantasy football broadsheet",
   "scripts": {
-    "build-history": "node --env-file=.env src/commands/build-history.js",
-    "generate": "node --env-file=.env src/commands/generate.js",
-    "preview": "node --env-file=.env src/commands/generate.js --dry-run",
-    "demo": "node --env-file=.env src/commands/demo.js",
-    "test-form": "node --env-file=.env src/commands/test-form.js",
-    "regenerate": "node --env-file=.env src/commands/regenerate.js",
-    "sync-season": "node --env-file=.env src/commands/sync-season.js",
-    "debug-rivalry": "node --env-file=.env src/commands/debug-rivalry.js",
-    "reset": "node --env-file=.env src/commands/reset.js"
+    "build-history": "node --env-file-if-exists=.env src/commands/build-history.js",
+    "generate": "node --env-file-if-exists=.env src/commands/generate.js",
+    "preview": "node --env-file-if-exists=.env src/commands/generate.js --dry-run",
+    "demo": "node --env-file-if-exists=.env src/commands/demo.js",
+    "test-form": "node --env-file-if-exists=.env src/commands/test-form.js",
+    "regenerate": "node --env-file-if-exists=.env src/commands/regenerate.js",
+    "sync-season": "node --env-file-if-exists=.env src/commands/sync-season.js",
+    "debug-rivalry": "node --env-file-if-exists=.env src/commands/debug-rivalry.js",
+    "reset": "node --env-file-if-exists=.env src/commands/reset.js"
   },
   "engines": {
     "node": ">=18"
