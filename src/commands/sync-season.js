@@ -34,7 +34,14 @@ async function run() {
   const playoffStart = league.settings?.playoff_week_start ?? 15;
   const regWeeks = playoffStart - 1;
   const lastScored = league.settings?.last_scored_leg ?? 0;
-  const through = o.through ?? Math.min(lastScored || regWeeks, regWeeks);
+  // Sync EVERY scored week, including the playoffs (15-17) — not just the regular season.
+  // The season DB is what standings, this-season rivalry meetings and locked playoff seeds
+  // read from, so capping this at regWeeks meant a playoff-week paper was computing off
+  // incomplete data — and a playoff meeting between two rivals never counted as a
+  // this-season meeting, which is exactly the game a rivalry most wants to talk about.
+  // (It also made the bootstrap re-run this every single time, since weeks 15-17 could
+  // never appear no matter how often it backfilled.)
+  const through = o.through ?? (lastScored || regWeeks);
 
   console.log(`Syncing ${season} season (${league.name}) — weeks 1..${through}...`);
 

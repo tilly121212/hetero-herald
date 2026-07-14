@@ -797,9 +797,16 @@ export async function renderIssue(action, facts) {
 
     const lineFor = (r, i) => {
       const arrow = movementArrow(r.roster_id, i, prev);
-      const red = i === order.length - 1 ? ' style="color:#8a2018"' : '';
+      const red = i === order.length - 1 ? 'color:#8a2018;' : '';
       const detail = r.rec ? `${r.rec} \u00b7 ${num(r.avg)} avg` : `${num(r.avg)}`;
-      return `<p${red}><b>${i + 1}. ${esc(r.name)}</b>${arrow} <span style="color:#8a7f6a">(${detail})</span></p>`;
+      // ONE LINE PER ROW. A long team name (or one with an emoji) used to wrap onto a second
+      // line, which made one column taller than the other. The row is a flex line that never
+      // wraps; the NAME is the only part allowed to shrink, and it ellipses if it must, so
+      // the rank, arrow and stats always stay visible and every row is exactly one line tall.
+      return `<p style="${red}display:flex;align-items:baseline;gap:6px;white-space:nowrap;overflow:hidden">` +
+        `<b style="flex:0 1 auto;overflow:hidden;text-overflow:ellipsis">${i + 1}. ${esc(r.name)}</b>` +
+        `<span style="flex:none">${arrow}</span>` +
+        `<span style="flex:none;color:#8a7f6a">(${detail})</span></p>`;
     };
     // Explicit even split: first half left, second half right, so 14 teams give a clean 7/7.
     const half = Math.ceil(order.length / 2);

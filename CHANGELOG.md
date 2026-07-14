@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.3.1 — snapshot integrity, playoff data, week picker, index polish
+1. TRADE-VALUE SNAPSHOTS CAN NO LONGER BE POISONED BY A TEST RUN. FantasyCalc only ever
+   returns TODAY'S values. That's correct in live operation (the paper runs the Tuesday right
+   after a week ends), but back-filling week 3 months later was stamping today's values onto
+   week 3 — inventing fake history that Revisionist History's whole "value then vs value now"
+   depends on, and which cannot be repaired afterwards. A snapshot is now only banked when the
+   week being published is the LATEST scored week. Back-fills and re-runs of old weeks bank
+   nothing (and say so in the log). Verified: a full 17-week back-fill writes ONE snapshot, a
+   live season writes one per week with correctly diverging values, and re-generating an old
+   week leaves its banked value untouched.
+2. PLAYOFF WEEKS NOW REACH THE SEASON DB. sync-season capped its back-fill at the regular
+   season (week 14), so weeks 15-17 never landed in the current season's database. Standings,
+   locked playoff seeds and — most painfully — this-season rivalry meetings all read from it,
+   which meant a playoff meeting between two rivals didn't count as a meeting in the very
+   paper covering it. It also made the bootstrap re-run the back-fill forever, since those
+   weeks could never appear. It now syncs every scored week.
+3. PICK A WEEK FROM THE ACTIONS TAB. "Run workflow" now takes an optional week number: leave
+   it blank for normal behaviour (oldest unpublished week), or type a number to publish that
+   specific week. No terminal needed. FIRST_PUBLISH is now passed through to the workflow too
+   (it was built last version but never wired in).
+4. REGENERATE now registers what it writes. It rewrote the HTML without touching the ledger,
+   so a week it produced never showed on the index and the scheduler still thought that week
+   was unpublished. Re-registering is idempotent, so nothing is ever listed twice. It still
+   only ever touches the single week you name.
+5. POWER RANKINGS — one line per row, guaranteed. A long team name (or one carrying an emoji)
+   wrapped onto a second line, which left one column taller than the other. Rows no longer
+   wrap; the name ellipses if it must, so rank, arrow and stats always stay visible.
+6. INDEX — links were rendering in default browser blue against the newsprint; colours are now
+   set explicitly. Each issue also gets a small grayscale thumbnail (its own lede photo,
+   recomputed from the same season+week seed, so nothing extra is stored).
+
+
 ## v1.3.0 — publishing logic, self-seeding, images, index
 1. CATCH-UP PUBLISHING (the big one). The scheduler only ever looked at the LATEST week, so a
    missed Tuesday (Actions outage, API blip) meant that week's paper was never published —

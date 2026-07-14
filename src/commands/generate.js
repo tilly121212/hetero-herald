@@ -23,7 +23,21 @@ async function run() {
 
   console.log('[2/5] Deciding action...');
   const published = loadPublished();
-  const action = decideAction(state, published);
+  // Optional manual override, set from the "Run workflow" button on GitHub (or an env var
+  // locally): publish THIS specific week instead of letting the catch-up logic choose.
+  // Blank/absent = normal behaviour (oldest unpublished week).
+  const forced = process.env.PUBLISH_WEEK && String(process.env.PUBLISH_WEEK).trim();
+  let action;
+  if (forced && !isNaN(Number(forced))) {
+    const w = Number(forced);
+    const champWeek = state.playoffStart + 2;
+    action = (w >= champWeek)
+      ? { type: 'YEAR_REVIEW', season: state.season, week: champWeek }
+      : { type: 'WEEKLY', season: state.season, week: w };
+    console.log(`      (manual override: PUBLISH_WEEK=${w})`);
+  } else {
+    action = decideAction(state, published);
+  }
   console.log('      ->', action.type, action.week ? `week ${action.week}` : (action.reason || action.season || ''));
 
   if (action.type === 'SLEEP') {
@@ -64,7 +78,7 @@ async function run() {
   // Trade Desk + Trade Winds intel (trader tiers, staleness, Grade the Trade, Revisionist
   // History, roster depth/age profiles) AND this week's write-once trade-value snapshot.
   // Shared with regenerate.js so the scheduled paper and a hand-run paper are identical.
-  const fo = await loadFrontOffice(LEAGUE_ID, rosters, identity, week, playerMap, state.season)
+  const fo = await loadFrontOffice(LEAGUE_ID, rosters, identity, week, playerMap, state.season, state.lastScored)
     .catch(e => { console.log('      (front-office data unavailable:', e.message + ')'); return {}; });
 
   const facts = { season: state.season, week, leagueId: LEAGUE_ID, leagueName: state.leagueName,

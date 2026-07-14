@@ -18,7 +18,7 @@ import { buildRevisionist } from './revisionist.js';
  * Safe by design: any single piece failing leaves that piece null rather than killing the run
  * (the sections are all modular and simply don't render without their data).
  */
-export async function loadFrontOffice(leagueId, rosters, identity, week, playerMap = {}, season = null) {
+export async function loadFrontOffice(leagueId, rosters, identity, week, playerMap = {}, season = null, lastScored = null) {
   const rosterIds = rosters.map(r => r.roster_id);
   const ownerIds = rosters.map(r => r.owner_id).filter(Boolean);
   const ownerName = (oid) => (identity.nameOfOwner ? identity.nameOfOwner(oid) : identity.nameOf(oid));
@@ -47,12 +47,27 @@ export async function loadFrontOffice(leagueId, rosters, identity, week, playerM
   // getFantasyCalcValues() returns a { sleeperId: value } MAP (not an array), so check entries
   const hasValues = fcValues && (Array.isArray(fcValues) ? fcValues.length : Object.keys(fcValues).length);
   if (hasValues && season && week) {
-    // BANK THIS WEEK'S VALUES (write-once). FantasyCalc has no historical endpoint, so a week
-    // we don't capture is lost forever. Re-running an old week will NOT overwrite it.
-    try {
-      const res = recordSnapshot(season, week, fcValues);
-      if (res.written) console.log(`      \u2713 banked trade-value snapshot for week ${week} (${res.count} players)`);
-    } catch {}
+    // BANK THIS WEEK'S VALUES — but ONLY if this is genuinely the current week.
+    //
+    // FantasyCalc has no historical endpoint: it always returns TODAY'S values. That's fine
+    // in live operation (the paper runs the Tuesday right after a week ends, so today's
+    // values ARE that week's values). It is NOT fine when back-filling: publishing week 3
+    // months later would stamp today's values onto week 3 and quietly poison the store with
+    // fake history — and Revisionist History's whole "value then vs value now" rests on it.
+    // The data is unrecoverable once wrong, so we simply refuse to snapshot a past week.
+    //
+    // "Current" = the week being published is the latest one that's been scored. When we
+    // don't know lastScored, we don't guess — we skip, because a missing snapshot is
+    // recoverable next week but a corrupt one is forever.
+    const isCurrentWeek = lastScored != null && Number(week) >= Number(lastScored);
+    if (isCurrentWeek) {
+      try {
+        const res = recordSnapshot(season, week, fcValues);
+        if (res.written) console.log(`      \u2713 banked trade-value snapshot for week ${week} (${res.count} players)`);
+      } catch {}
+    } else {
+      console.log(`      \u00b7 week ${week} is historical (latest scored: ${lastScored}) \u2014 not banking a snapshot (today's values aren't week ${week}'s values)`);
+    }
 
     // GRADE THE TRADE — a FRESH trade (this week or one back), graded on current values.
     try {

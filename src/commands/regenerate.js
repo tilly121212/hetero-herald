@@ -13,7 +13,7 @@ import { syncPlayers, syncLeague, detectState } from '../lib/sync.js';
 import { buildIdentity } from '../lib/identity.js';
 import * as A from '../lib/analyze.js';
 import { renderIssue } from '../render/render.js';
-import { writeIssue, syncImagesToDocs } from '../lib/publish.js';
+import { writeIssue, syncImagesToDocs, markPublished } from '../lib/publish.js';
 import { pickImages } from '../lib/images.js';
 import { upsertWeek } from '../lib/season-db.js';
 import { getTransactions, getWinners } from '../lib/sleeper.js';
@@ -73,7 +73,7 @@ async function run(){
   // trade-desk data (staleness + tiers) from multi-year history if present
   // Trade Desk + Trade Winds intel AND this week's write-once trade-value snapshot.
   // Shared with generate.js (the scheduled run) so both produce an identical paper.
-  const fo = await loadFrontOffice(LEAGUE_ID, rosters, identity, week, playerMap, state.season)
+  const fo = await loadFrontOffice(LEAGUE_ID, rosters, identity, week, playerMap, state.season, state.lastScored)
     .catch(e => { console.log('   (front-office data unavailable:', e.message + ')'); return {}; });
   const { staleness, traderTiers, gradeThisTrade, revisionist, rosterDepth, rosterProfiles } = fo;
   // playoff bracket — only exists once the postseason has started (week > regWeeks).
@@ -91,10 +91,15 @@ async function run(){
   console.log(`[3/4] Re-writing articles via ${o.provider}...`);
   const html = await renderIssue(action, facts);
 
-  console.log('[4/4] Overwriting the existing issue file...');
-  const path = writeIssue(action, html);   // same filename -> overwrites in place
+  console.log('[4/4] Writing the issue file...');
+  const path = writeIssue(action, html);   // same filename -> overwrites ONLY this week in place
+  // Register it. Regenerate used to write the HTML without touching the ledger, so a week it
+  // produced never appeared on the index — and the scheduler still considered that week
+  // unpublished and would publish it again later. markPublished is idempotent (the ledger is
+  // a Set), so re-registering an existing week is harmless; it just refreshes the index.
+  markPublished(action);
   console.log('      Wrote', path);
-  console.log('\n✓ Regenerated. The published archive keeps its order; only this issue changed.');
+  console.log(`\n\u2713 Regenerated week ${week}. No other issue was touched; the archive keeps its order.`);
 }
 
 run().catch(e => { console.error(e); process.exit(1); });
