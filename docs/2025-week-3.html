@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Hetero Herald — Week 3, 2025</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap');
+
+  :root{
+    --paper:#f4efe4; --ink:#1a1713; --oxblood:#7c2118; --stamp:#9a8f7a;
+    --rule:#2a251e; --faint:#e7dfce;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:#d9d2c2; color:var(--ink);
+    font-family:'Old Standard TT',Georgia,serif; line-height:1.5;
+  }
+  /* subtle newsprint grain */
+  .sheet{
+    max-width:1180px; margin:24px auto; background:var(--paper);
+    padding:34px 40px 60px;
+    box-shadow:0 2px 0 #cabfa9, 0 18px 44px rgba(0,0,0,.28);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(120,110,90,.020) 0 2px, transparent 2px 4px);
+  }
+  @media(max-width:720px){ .sheet{padding:18px 16px 40px; margin:0} }
+
+  /* ---- Masthead ---- */
+  .flag-top{display:flex; justify-content:space-between; align-items:flex-end;
+    font-family:'Special Elite',monospace; font-size:11px; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--ink); border-bottom:1px solid var(--rule); padding-bottom:6px}
+  .masthead{ text-align:center; padding:10px 0 6px; border-bottom:3px double var(--rule)}
+  .masthead h1{
+    font-family:'Playfair Display',serif; font-weight:900; margin:.1em 0 .05em;
+    font-size:clamp(40px,8vw,86px); line-height:.92; letter-spacing:-.01em}
+  .masthead .sub{font-style:italic; font-size:clamp(13px,2.4vw,16px); color:#453e33}
+  .flag-bottom{display:flex; justify-content:space-between; align-items:center;
+    font-family:'Special Elite',monospace; font-size:11px; letter-spacing:.04em;
+    text-transform:uppercase; padding:6px 2px; border-bottom:1px solid var(--rule); flex-wrap:wrap; gap:6px}
+  .flag-bottom .price{color:var(--oxblood)}
+
+  /* ---- Layout ---- */
+  .lede-grid{display:grid; grid-template-columns:1.15fr .85fr; gap:0; border-bottom:2px solid var(--rule)}
+  @media(max-width:860px){ .lede-grid{grid-template-columns:1fr} }
+  .lede-main{padding:22px 26px 26px 0; border-right:1px solid var(--rule)}
+  @media(max-width:860px){ .lede-main{border-right:none; padding-right:0; border-bottom:1px solid var(--rule)} }
+  .lede-side{padding:22px 0 26px 26px}
+  @media(max-width:860px){ .lede-side{padding-left:0} }
+
+  .kicker{font-family:'Special Elite',monospace; text-transform:uppercase; letter-spacing:.12em;
+    font-size:12px; color:var(--oxblood); margin-bottom:8px}
+  .hed{font-family:'Playfair Display',serif; font-weight:900; line-height:1.02;
+    font-size:clamp(30px,5.4vw,52px); margin:.05em 0 .12em}
+  .dek{font-style:italic; font-size:clamp(15px,2.6vw,19px); color:#372f25; margin-bottom:14px;
+    border-bottom:1px solid var(--faint); padding-bottom:14px}
+  .byline{font-family:'Special Elite',monospace; font-size:11px; text-transform:uppercase;
+    letter-spacing:.08em; color:#5b5142; margin-bottom:14px}
+  .body p{margin:0 0 12px; text-align:justify; hyphens:auto}
+  .body.columns{column-count:2; column-gap:26px}
+  @media(max-width:860px){ .body.columns{column-count:1} }
+  .drop::first-letter{
+    font-family:'Playfair Display',serif; font-weight:900; float:left; font-size:64px;
+    line-height:.72; padding:6px 8px 0 0; color:var(--oxblood)}
+
+  h3.section{font-family:'Playfair Display',serif; font-weight:900; font-size:22px;
+    border-bottom:2px solid var(--rule); padding-bottom:4px; margin:4px 0 12px;
+    display:flex; align-items:baseline; justify-content:space-between}
+  h3.section span{font-family:'Special Elite',monospace; font-size:10px; letter-spacing:.1em;
+    color:var(--stamp); text-transform:uppercase}
+
+  /* champion plate */
+  .champ-plate{border:2px solid var(--rule); padding:16px; text-align:center; background:#efe7d5}
+  .champ-plate .crown{font-family:'Special Elite',monospace; font-size:11px; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--oxblood)}
+  .champ-plate .champ-name{font-family:'Playfair Display',serif; font-weight:900; font-size:26px; margin:6px 0; line-height:1.05}
+  .champ-plate .champ-note{font-style:italic; font-size:14px; color:#453e33}
+
+  /* standings table */
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  caption{text-align:left; font-family:'Special Elite',monospace; font-size:10px;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--stamp); padding-bottom:6px}
+  th,td{padding:4px 6px; border-bottom:1px solid var(--faint); text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  thead th{border-bottom:1.5px solid var(--rule); font-family:'Special Elite',monospace;
+    font-size:10px; letter-spacing:.06em; text-transform:uppercase}
+  tr.champ td{background:#f6edd6; font-weight:700}
+  tr.cellar td{color:#8a2018}
+  .movement{font-family:'Special Elite',monospace; font-size:11px}
+
+  .cols-3{display:grid; grid-template-columns:repeat(3,1fr); gap:0 26px; border-top:2px solid var(--rule); margin-top:26px; padding-top:20px}
+  @media(max-width:860px){ .cols-3{grid-template-columns:1fr; gap:0} }
+  .cols-3 > div{border-right:1px solid var(--faint); padding-right:24px}
+  .cols-3 > div:last-child{border-right:none}
+  @media(max-width:860px){ .cols-3 > div{border-right:none; border-bottom:1px solid var(--faint); padding-bottom:16px; margin-bottom:16px} }
+
+  .box{border:1px solid var(--rule); padding:12px 14px; margin-bottom:16px; background:#efe7d5}
+  .box .box-h{font-family:'Special Elite',monospace; font-size:11px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--oxblood); border-bottom:1px solid var(--rule); padding-bottom:5px; margin-bottom:8px}
+  .box p{margin:.2em 0; font-size:13.5px}
+  .stat-line{display:flex; justify-content:space-between; border-bottom:1px dotted var(--stamp); padding:3px 0; font-size:13.5px}
+  .stat-line b{font-variant-numeric:tabular-nums}
+  .scoreboard{margin-top:10px}
+  .score-row{display:flex; justify-content:space-between; align-items:baseline; padding:7px 10px; border-bottom:1px solid var(--rule); font-size:15px}
+  .score-row.alt{background:rgba(124,33,24,0.035)}
+  .score-row:last-child{border-bottom:none}
+  .score-teams{font-family:'Old Standard TT',serif}
+  .score-teams .def{color:var(--stamp); font-style:italic; font-size:13px; margin:0 2px}
+  .score-nums{font-variant-numeric:tabular-nums; white-space:nowrap; padding-left:16px}
+  .score-nums .win{font-weight:700; color:var(--ink)}
+  .score-nums .sep{margin:0 5px; color:var(--stamp)}
+  .score-nums .lose{color:#9a917f}
+  .score-nums .hi{color:var(--oxblood); font-size:11px; vertical-align:2px}
+
+  .obit{border:2px solid var(--rule); padding:18px 20px; margin-top:26px; background:#ece3d0;
+    text-align:center}
+  .obit .cross{font-size:20px; color:var(--stamp)}
+  .obit h4{font-family:'Playfair Display',serif; font-weight:900; font-size:24px; margin:6px 0}
+  .obit p{font-style:italic; max-width:640px; margin:8px auto; font-size:14.5px}
+
+  .foot{border-top:3px double var(--rule); margin-top:30px; padding-top:12px;
+    font-family:'Special Elite',monospace; font-size:11px; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--stamp); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px}
+  .pull{font-family:'Playfair Display',serif; font-style:italic; font-weight:700; font-size:19px;
+    line-height:1.25; color:var(--oxblood); border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+    padding:12px 0; margin:14px 0}
+  /* controversy pull-quote — deliberately different from .pull: a boxed, centered
+     "tabloid callout" with big oxblood quote marks framing it */
+  .cpull{font-family:'Playfair Display',serif; font-style:italic; font-weight:600; font-size:18px;
+    line-height:1.35; color:var(--oxblood); text-align:center; margin:28px auto; max-width:80%;
+    position:relative; padding:18px 26px; border-top:2px solid var(--oxblood); border-bottom:2px solid var(--oxblood)}
+  .cpull::before{content:'\201C'; font-family:'Playfair Display',serif; font-size:52px; color:var(--stamp);
+    line-height:0; position:absolute; top:16px; left:6px; opacity:0.55}
+  .cpull::after{content:'\201D'; font-family:'Playfair Display',serif; font-size:52px; color:var(--stamp);
+    line-height:0; position:absolute; bottom:2px; right:6px; opacity:0.55}
+
+  /* vintage photo plate */
+  .plate{margin:0 0 14px; border:1px solid var(--rule); background:#e9e0cd; padding:6px}
+  .plate img{display:block; width:100%; height:100%; aspect-ratio:4/3; object-fit:cover; object-position:center; filter:grayscale(1) contrast(1.08) sepia(.12); mix-blend-mode:multiply}
+  .plate figcaption{font-family:'Special Elite',monospace; font-size:10.5px; letter-spacing:.03em;
+    color:#5b5142; padding:6px 2px 2px; text-transform:uppercase; border-top:1px solid var(--faint); margin-top:6px}
+  .plate-halftone .halftone-fill{
+    width:100%; aspect-ratio:4/3; background:
+      radial-gradient(circle at 30% 30%, rgba(26,23,19,.55) 0 2px, transparent 2px 6px),
+      radial-gradient(circle at 70% 65%, rgba(26,23,19,.4) 0 2px, transparent 2px 6px),
+      linear-gradient(135deg,#c9bfa8,#8a8069);
+    background-size:8px 8px,8px 8px,100% 100%; filter:grayscale(1) contrast(1.1)}
+
+  /* reaction quotes */
+  .quote{border-left:3px solid var(--oxblood); padding:6px 0 6px 14px; margin:12px 0;
+    font-family:'Playfair Display',serif; font-style:italic; font-size:16px; line-height:1.3}
+  .quote .attr{display:block; font-family:'Special Elite',monospace; font-style:normal;
+    font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#5b5142; margin-top:5px}
+
+
+  .race-tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:2px solid var(--rule);margin-bottom:16px}
+  .race-tiers.race-tiers-2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:860px){.race-tiers{grid-template-columns:repeat(2,1fr)}}
+  /* playoff bracket — tree with connector lines, rounds left->right, championship rightmost */
+  .bracket{display:flex;align-items:stretch;overflow-x:auto;padding:14px 6px;border:2px solid var(--rule);
+    background:var(--paper);margin-bottom:14px;gap:0}
+  .bround{flex:1 0 170px;min-width:170px;display:flex;flex-direction:column;justify-content:space-around;padding:0 14px}
+  .bround-h{font-family:'Special Elite',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--oxblood);text-align:center;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+  .bround.upcoming .bround-h{color:var(--stamp)}
+  .bround-inner{display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:0}
+  /* each matchup is a card; connector lines drawn with pseudo-elements */
+  .bmatch{position:relative;border:1.5px solid var(--rule);background:#fbf8f0;margin:10px 0;
+    box-shadow:1px 1px 0 rgba(42,37,30,.12)}
+  .bmatch.done{border-color:var(--ink)}
+  /* horizontal stub out the right of every matchup (except the final round) */
+  .bround:not(:last-child) .bmatch::after{content:'';position:absolute;top:50%;left:100%;
+    width:14px;height:1.5px;background:var(--rule)}
+  /* horizontal stub into the left of rounds after the first */
+  .bround:not(:first-child) .bmatch::before{content:'';position:absolute;top:50%;right:100%;
+    width:14px;height:1.5px;background:var(--rule)}
+  .bteam{font-family:'Old Standard TT',serif;font-size:13.5px;padding:7px 9px;display:flex;align-items:center;gap:7px}
+  .bteam:first-child{border-bottom:1px solid var(--faint)}
+  .bteam .bseed{font-family:'Special Elite',monospace;font-size:10px;color:var(--paper);background:var(--stamp);
+    min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:2px;flex:none}
+  .bteam .bnm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bteam.adv{font-weight:700;color:var(--ink)}
+  .bteam.adv .bseed{background:var(--oxblood)}
+  .bteam.out{color:#8f8674;text-decoration:line-through;text-decoration-color:#b9482f;text-decoration-thickness:1.5px}
+  .bteam.tbd{color:var(--stamp);font-style:italic}
+  .bteam.pending{color:#6b6252}
+  .bteam .chk{color:#1f6b1f;font-weight:700;flex:none}
+  .bchamp{text-align:center;font-family:'Playfair Display',serif;font-size:19px;font-weight:700;
+    color:var(--oxblood);padding:12px;border:2.5px double var(--oxblood);background:#fbf3ec;margin-bottom:14px}
+  @media(max-width:860px){.bracket{padding:10px 2px}.bround{min-width:140px;flex-basis:140px;padding:0 8px}}
+  .race-tier{padding:12px;border-right:1px solid var(--rule)}
+  .race-tier:last-child{border-right:none}
+  @media(max-width:860px){.race-tier{border-bottom:1px solid var(--rule)}}
+  .race-tier h4{font-family:'Special Elite',monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+  .race-tier.clinched h4{color:#2a6b2a}.race-tier.contending h4{color:var(--ink)}
+  .race-tier.bubble h4{color:#9a6a18}.race-tier.eliminated h4{color:#8a2018}
+  .race-tier p{margin:3px 0;font-size:13px}
+  .race-tier .seed{font-family:'Special Elite',monospace;color:var(--stamp);font-size:11px}
+  .scenario{display:flex;gap:10px;padding:7px 0;border-bottom:1px dotted var(--stamp);font-size:13.5px}
+  .scenario .team{font-weight:700;min-width:150px}
+  @media(max-width:600px){.scenario{flex-direction:column;gap:2px}.scenario .team{min-width:0}}
+
+  .band{border-top:2px solid var(--rule);margin-top:26px;padding-top:20px}
+  .band-double{border-top:3px double var(--rule)}
+  .obit-wrap{margin-top:26px}
+  .story{break-inside:avoid}
+  .form-link{color:var(--oxblood);text-decoration:none;font-weight:700;border-bottom:1px solid var(--oxblood)}
+  .form-link:hover{background:var(--oxblood);color:var(--paper)}
+  .submit-cta{border:2px solid var(--oxblood);background:#efe7d5;padding:14px;margin-top:14px;text-align:center}
+  .submit-cta-h{font-family:'Playfair Display',serif;font-weight:900;font-size:17px;color:var(--oxblood);margin-bottom:6px}
+  .submit-cta p{font-size:12.5px;font-style:italic;color:#453e33;margin:0 0 10px}
+  .submit-btn{display:inline-block;background:var(--oxblood);color:var(--paper);font-family:'Special Elite',monospace;
+    font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:8px 16px;text-decoration:none;border:1px solid var(--oxblood)}
+  .submit-btn:hover{background:var(--paper);color:var(--oxblood)}
+  .submit-note{font-size:10px !important;color:var(--stamp) !important;margin-top:8px !important;text-transform:uppercase;font-family:'Special Elite',monospace}
+  .aging-trade{border:1px solid var(--rule);background:#efe7d5;padding:16px;margin-top:18px}
+  .aging-trade .lede-line{font-style:italic;font-size:14px;color:#453e33;margin:6px 0 14px;line-height:1.4}
+  .grade-trade{border:1px solid var(--rule);background:#eef0e6;padding:16px;margin-top:18px}
+  .gt-sides{display:flex;align-items:stretch;gap:0;margin:10px 0 12px}
+  .gt-side{flex:1;background:#fbf9f2;border:1px solid var(--rule);padding:10px 12px}
+  .gt-team{font-family:'Playfair Display',serif;font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--faint);padding-bottom:5px;margin-bottom:6px}
+  .gt-grade{font-family:'Special Elite',monospace;font-size:15px;color:var(--paper);background:var(--oxblood);padding:1px 8px;border-radius:3px;margin-left:8px}
+  .gt-got{font-family:'Old Standard TT',serif;font-size:13.5px;line-height:1.5}
+  .gt-val{font-family:'Special Elite',monospace;font-size:11px;color:var(--stamp);margin-top:6px}
+  .gt-swap{display:flex;align-items:center;padding:0 12px;font-size:20px;color:var(--oxblood)}
+  .gt-verdict{font-family:'Old Standard TT',serif;font-size:14px;line-height:1.55;color:var(--ink)}
+  @media(max-width:640px){.gt-sides{flex-direction:column}.gt-swap{padding:6px 0}}
+  .aging-verdict{text-align:center;font-family:'Special Elite',monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--oxblood);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+    padding:7px 0;margin-bottom:14px}
+  .aging-verdict b{color:var(--ink)}
+  .aging-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:600px){.aging-cards{grid-template-columns:1fr}}
+  .aging-card{border:1px solid var(--stamp);background:var(--paper);padding:12px 14px}
+  .aging-card .team-name{font-family:'Playfair Display',serif;font-weight:900;font-size:16px;line-height:1.1;margin-bottom:2px}
+  .aging-card .got{font-size:12.5px;color:#5b5142;font-style:italic;margin-bottom:10px}
+  .aging-card .val-row{display:flex;align-items:baseline;justify-content:space-between;font-family:'Special Elite',monospace;
+    font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--stamp);border-top:1px dotted var(--stamp);padding-top:8px}
+  .aging-card .val-nums{display:flex;align-items:baseline;gap:8px;margin-top:4px}
+  .aging-card .v-then{font-family:'Playfair Display',serif;font-size:20px;color:#8a7f6a}
+  .aging-card .v-arrow{color:var(--stamp);font-size:14px}
+  .aging-card .v-now{font-family:'Playfair Display',serif;font-size:22px;font-weight:900}
+  .aging-card .delta{font-family:'Special Elite',monospace;font-size:12px;margin-top:4px}
+  .aging-card .down{color:#8a2018}
+  .aging-card .up{color:#2a6b2a}
+</style>
+</head><body>
+<div class="sheet">
+
+  <div class="flag-top">
+    <span>Vol. 1 · No. 3</span>
+    <span>“All The Points That Fit, We Print”</span>
+    <span>Dynasty Edition</span>
+  </div>
+  <div class="masthead">
+    <div class="sub">The Newspaper of Record for the League of</div>
+    <h1>The Hetero Herald</h1>
+    <div class="sub">Hetero Heroes · Established 2023 · Fourteen Franchises, One Truth</div>
+  </div>
+  <div class="flag-bottom">
+    <span>Week 3 · 2025 Season</span>
+    <span class="price"></span>
+    <span>Filed by V. Malloy</span>
+  </div>
+
+  <!-- LEDE -->
+  <div class="lede-grid">
+    <div class="lede-main">
+      <div class="kicker">Game of the Week</div>
+      <h1 class="hed">The Cruelest Cut: Lil Azz Boyz Learn the Agony of Two Point Two-Two</h1>
+      <div class="dek">Lil Azz Boyz's 2.22-point loss to Egbuka Matata proves that sometimes, the smallest numbers inflict the biggest pain.</div>
+      <div class="byline">By Vince Malloy · Beat Writer, The Hetero Herald</div>
+      <div class="body columns"><p class="drop">Week 3 delivered its own special brand of cruelty. Lil Azz Boyz suffered a loss by the slimmest, most soul-crushing margin imaginable: 2.22 points. Egbuka Matata managed to eke out a win, moving to a pristine 3-0 record, but "pristine" feels like a stretch when victory is secured by what amounts to a missed extra point from a backup kicker.</p>
+<p>The scoreboard showed 140.32 to 138.1, a statistical whisper that echoes like a scream in the ears of any manager who has ever left a perfectly viable player, capable of generating those two measly points, languishing on the bench. The manager of Lil Azz Boyz is now intimately familiar with this particular flavor of exquisite anguish, left to ponder every single lineup decision, every questionable late-round draft pick, every single player who might have gifted them the fractional difference between 2-1 and an unblemished start.</p>
+<p>This isn't about standings, not yet. This is about process, about the fundamental truth that victory in this league is a meticulous, often brutal, accumulation of points. When you fall short by the price of a single field goal, every choice from the opening draft bell to the final whistle of the week will haunt your Mondays. Egbuka Matata will take the win, but Lil Azz Boyz will be feeling this one for a long time.</p></div>
+      <div class="pull">"Two point two-two points. That's not a loss, that's a personal affront."</div>
+    </div>
+    <div class="lede-side">
+      <figure class="plate"><img src="images/images (4).jpg" alt="" loading="lazy"></figure>
+      <div class="quote">They thought they had a shot. Adorable. Three and oh. This is our league.<span class="attr">— Egbuka Matata</span></div>
+      <div class="box"><div class="box-h">Final · Game of the Week</div><div class="stat-line"><span>Egbuka Matata <span style="color:#8a7f6a">(3-0)</span></span><b>140.32</b></div><div class="stat-line"><span>Lil Azz Boyz <span style="color:#8a7f6a">(2-1)</span></span><b>138.1</b></div><div class="stat-line" style="border:none;margin-top:6px"><span>Margin</span><b>2.22</b></div></div><div class="box"><div class="box-h">Weather · Week 3</div><p><b>High:</b> 145.22.</p><p><b>Low:</b> 74.94.</p><p><b>Spread:</b> 70.3 pts.</p></div>
+    </div>
+  </div>
+
+  
+
+  
+
+  
+  <!-- CONTROVERSY (submitted take or invented drama; always runs) -->
+  <div style="border-top:3px double var(--rule);margin-top:26px;padding-top:20px">
+    <h3 class="section">Controversy Corner <span>Letters to the Editor</span></h3>
+    <div class="cols-3" style="border-top:none;margin-top:0;padding-top:0">
+      <div style="grid-column:1 / 3">
+        <div class="body columns"><p class="drop">Hold the presses, folks! My desk just about imploded when this scorching hot take landed, dripping with pure, unadulterated fury: "fuk that guy!" And let me tell you, when "tuki" drops a bomb like that, we all know exactly who "that guy" is. Reigning Defending King , your crown is slipping, and it’s about to be dragged through the mud!</p>
+<p>Sources deep within the league whisper of an unspeakable roster move, a benching so egregious it borders on criminal negligence! King , you dared to sideline Chase down Ass up’s star running back for a kicker with a bye week, all to manipulate the waiver wire? The audacity! The pure, unadulterated hubris! This isn't just a misstep; it's a declaration of war, a direct insult to every manager, especially The Flamboyant Commish, who must now intervene!</p>
+<p>We’re calling this what it is: The Royal Betrayal! tuki isn’t alone; Merry Men are reportedly seething, and even Lil Azz Boyz are shaking their heads. This league demands justice! King , you owe an explanation, a public apology, and frankly, a forced trade of your entire bench! The integrity of our sacred game is at stake! Accountability, now!</p></div>
+        <div class="cpull">King benched a star for a bye-week kicker to manipulate the waiver wire.</div>
+      </div>
+      <div>
+        <div class="box"><div class="box-h">Reader Submission</div><p style="font-style:italic">“fuk that guy”</p><p style="font-size:11px;color:#5b5142;text-transform:uppercase;font-family:'Special Elite',monospace">— tuki</p></div>
+        <div class="submit-cta">
+          <div class="submit-cta-h">Got Drama? Air It Out.</div>
+          <p>Send the Herald your hottest take, pettiest grievance, or wildest accusation. One gets featured every week.</p>
+          <a class="submit-btn" href="https://docs.google.com/forms/d/e/1FAIpQLScAih9eRjgT0zpqsjJvoxgCjiTCmzqDaoOWcPdNWFDX46VAQg/viewform?usp=publish-editor" target="_blank" rel="noopener">Submit Your Take →</a>
+          
+        </div>
+        <figure class="plate"><img src="images/images.jpg" alt="" loading="lazy"></figure>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIVALRY DESK -->
+  
+  <div style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <h3 class="section">Rivalry Desk <span>Multi-Year · The Long Memory</span></h3>
+    <div class="cols-3" style="border-top:none;margin-top:0;padding-top:0">
+      <div style="grid-column:1 / 3">
+        <div class="body"><p class="drop">Egbuka Matata finally broke through against Lil Azz Boyz in Week 3, stealing a 140.32-138.1 victory in what became their closest meeting yet. The all-time series is dead even at 1-1 over 2 meetings, though Lil Azz Boyz still holds a 13.34-point advantage in total scoring between the two. This 2.22-point margin sharply contrasts Lil Azz Boyz's 163.68-148.12 win in 2024 Week 11, which stands as the biggest blowout in this nascent rivalry. They average an 8.89-point margin, yet somehow manage to stumble into these nail-biters. There's no playoff history, just raw regular season futility and the occasional flash of competence.</p></div>
+      </div>
+      <div><div class="box"><div class="box-h">All-Time Series</div><p style="font-style:italic">The all-time series is dead even at 1–1 over 2 meetings.</p><div class="stat-line" style="margin-top:6px"><span>Egbuka Matata</span><b>140.32</b></div><div class="stat-line"><span>Lil Azz Boyz</span><b>138.1</b></div></div></div>
+    </div>
+  </div>
+
+  <!-- ROW: Upset + Bench Crime + Luck -->
+  <div class="cols-3">
+    <div>
+      <h3 class="section">Upset of the Week <span>Cinderella</span></h3>
+      <div class="body"><p class="drop">The celestial gears of the league screeched to a halt this week, sending tremors through the standings. In a contest that defied all logic and reasonable expectation, the 8th-ranked Top3prediction performed an astonishing feat, brutally crushing the supposedly superior 5th-ranked Chase down Ass up with a commanding 141.22 points to a woeful 107.9. This wasn't merely an upset by record; it was a public shaming, a stark reminder that some teams, regardless of their lofty perch, are simply built to choke when it matters most.</p></div>
+    </div>
+    <div>
+      <h3 class="section">Bench Crime Report <span>Blotter</span></h3>
+      <div class="box"><div class="box-h">Grand Larceny <span style="color:var(--stamp)">Worst Start/Sit Calls</span></div><div class="stat-line" style="display:block;border-bottom:1px dotted var(--stamp);padding:6px 0"><b>Reigning Defending King 💩</b> started <b>Deebo Samuel</b> (4.9) at WR while <b>Tre Tucker</b> put up <b>40.9</b> on the bench <span style="color:#8a2018">(&minus;36)</span>.</div><div class="stat-line" style="display:block;border-bottom:1px dotted var(--stamp);padding:6px 0"><b>Golf Fag</b> started <b>Marvin Mims</b> (1.4) at WR while <b>Luther Burden</b> put up <b>19.8</b> on the bench <span style="color:#8a2018">(&minus;18.4)</span>.</div><div class="stat-line" style="display:block;border-bottom:1px dotted var(--stamp);padding:6px 0"><b>Bear and Twink Law Firm</b> started <b>Rachaad White</b> (2.4) at RB while <b>Quinshon Judkins</b> put up <b>16.5</b> on the bench <span style="color:#8a2018">(&minus;14.1)</span>.</div></div>
+    </div>
+    <div>
+      <h3 class="section">The Luck Ledger <span>Fortune</span></h3>
+      <div class="box"><div class="box-h">Robbed</div><p><b>Lil Azz Boyz</b> — scored 138.1 and still lost.</p></div><div class="box"><div class="box-h">Blessed</div><p><b>LGBTQ Fan- that’s gay</b> — won with just 93.66.</p></div>
+      <div class="quote">138 points and losing just proves you won the damn lottery.<span class="attr">— Lil Azz Boyz</span></div>
+    </div>
+  </div>
+
+  <!-- Power Rankings (2/3) + Standings (1/3) -->
+  <div class="cols-3">
+    <div style="grid-column:1 / 3;">
+      <h3 class="section">Malloy's Power Rankings <span>Week 3 · By Performance, Not Just Record</span></h3>
+      <div class="body"><div style="display:grid;grid-template-columns:1fr 1fr;column-gap:28px"><div><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1. The Flamboyant Commish</b><span style="flex:none;white-space:nowrap"></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(3-0 · 143.5 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">2. Reigning Defending King 💩</b><span style="flex:none;white-space:nowrap"></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(3-0 · 133.9 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">3. Egbuka Matata</b><span style="flex:none;white-space:nowrap"> <span style="color:#2a6b2a;font-weight:700">▲2</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(3-0 · 126.1 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">4. Lil Azz Boyz</b><span style="flex:none;white-space:nowrap"></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(2-1 · 128.4 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">5. Top3prediction</b><span style="flex:none;white-space:nowrap"> <span style="color:#2a6b2a;font-weight:700">▲1</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(1-2 · 131.2 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">6. Chase down Ass up</b><span style="flex:none;white-space:nowrap"> <span style="color:#8a2018;font-weight:700">▼3</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(2-1 · 119.6 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">7. Arizona Queer</b><span style="flex:none;white-space:nowrap"> <span style="color:#2a6b2a;font-weight:700">▲3</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(2-1 · 116.1 avg)</span></p></div><div><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">8. Merry Men</b><span style="flex:none;white-space:nowrap"> <span style="color:#2a6b2a;font-weight:700">▲1</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(1-2 · 118.3 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">9. LGBTQ Fan- that’s gay</b><span style="flex:none;white-space:nowrap"> <span style="color:#8a2018;font-weight:700">▼1</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(2-1 · 109.1 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">10. Bear and Twink Law Firm</b><span style="flex:none;white-space:nowrap"> <span style="color:#8a2018;font-weight:700">▼3</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(1-2 · 103.2 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">11. Solid team, but I’m gay.</b><span style="flex:none;white-space:nowrap"> <span style="color:#2a6b2a;font-weight:700">▲1</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(1-2 · 101.5 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">12. Im not gay anymore</b><span style="flex:none;white-space:nowrap"> <span style="color:#2a6b2a;font-weight:700">▲1</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(0-3 · 100.9 avg)</span></p><p style="display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">13. MAHOMES &amp; MAAUTO</b><span style="flex:none;white-space:nowrap"> <span style="color:#8a2018;font-weight:700">▼2</span></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(0-3 · 99.3 avg)</span></p><p style="color:#8a2018;display:flex;align-items:baseline;gap:6px;overflow:hidden"><b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">14. Golf Fag</b><span style="flex:none;white-space:nowrap"></span><span style="flex:none;white-space:nowrap;color:#8a7f6a">(0-3 · 93.6 avg)</span></p></div></div></div>
+    </div>
+    <div>
+      <h3 class="section">After Week 3 <span>Standings</span></h3>
+      <table><caption>Season standings · by record, then points-for</caption><thead><tr><th>Team</th><th>Rec</th><th>PF</th></tr></thead><tbody><tr class="champ"><td>The Flamboyant Commish</td><td>3-0</td><td>430.4</td></tr><tr class="champ"><td>Reigning Defending King 💩</td><td>3-0</td><td>401.6</td></tr><tr class="champ"><td>Egbuka Matata</td><td>3-0</td><td>378.4</td></tr><tr class="champ"><td>Lil Azz Boyz</td><td>2-1</td><td>385.1</td></tr><tr class="champ"><td>Chase down Ass up</td><td>2-1</td><td>358.9</td></tr><tr class="champ"><td>Arizona Queer</td><td>2-1</td><td>348.2</td></tr><tr class="champ"><td>LGBTQ Fan- that’s gay</td><td>2-1</td><td>327.3</td></tr><tr class=""><td>Top3prediction</td><td>1-2</td><td>393.6</td></tr><tr class=""><td>Merry Men</td><td>1-2</td><td>354.9</td></tr><tr class=""><td>Bear and Twink Law Firm</td><td>1-2</td><td>309.7</td></tr><tr class=""><td>Solid team, but I’m gay.</td><td>1-2</td><td>304.6</td></tr><tr class=""><td>Im not gay anymore</td><td>0-3</td><td>302.6</td></tr><tr class=""><td>MAHOMES &amp; MAAUTO</td><td>0-3</td><td>297.9</td></tr><tr class="cellar"><td>Golf Fag</td><td>0-3</td><td>280.9</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- TRADE WINDS (rumor mill) -->
+  
+  <div style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <h3 class="section">Trade Winds <span>Rumor Mill · Unconfirmed, Unbothered</span></h3>
+    <div class="cols-3" style="border-top:none;margin-top:0;padding-top:0">
+      <div style="grid-column:1 / 3">
+        <div class="body columns"><p class="drop">Malloy's Rumor Mill: After three weeks, the silence from some war rooms is deafening. Unnamed sources whisper that phones are ringing unanswered for Top3prediction and Lil Azz Boyz, leaving their rosters stagnant. The Flamboyant Commish, a perfect 3-0, reportedly still sports a single tight end while benching multiple promising young running backs like Jonathon Brooks. Eyebrows are raised over whether they'll ever use that RB surplus to plug their glaring hole at TE. Meanwhile, Mahomes & Maauto, languishing at 0-3, should be fielding offers for Travis Kelce and Stefon Diggs immediately, or risk their values evaporating into the mid-season ether. Im not gay anymore, also winless, should be shopping Cooper Kupp before it’s too late.</p></div>
+      </div>
+      <div>
+        
+        <div class="quote">They need a trade? I'm clearing shelf space for my next trophy.<span class="attr">— a source familiar with the matter</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THE TRADE DESK -->
+  
+  <div style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <h3 class="section">The Trade Desk <span>Front Office · Values via FantasyCalc</span></h3>
+    <div class="cols-3" style="border-top:none;margin-top:0;padding-top:0">
+      <div><div class="box"><div class="box-h">This Week's Trades</div><p style="font-style:italic;color:#5b5142">No trades logged this week.</p></div></div>
+      <div><div class="box"><div class="box-h">Staleness Watch <span style="color:var(--stamp)">90+ DAYS FLAGGED</span></div><div class="stat-line"><span>Top3prediction</span><b style="color:#8a2018">Never</b></div><div class="stat-line"><span>Lil Azz Boyz</span><b style="color:#8a2018">Never</b></div><div class="stat-line"><span>Bear and Twink Law Firm</span><b style="color:#8a2018">Never</b></div><div class="stat-line"><span>Merry Men</span><b style="color:#8a2018">Never</b></div><div class="stat-line"><span>Reigning Defending King 💩</span><b style="color:#8a2018">346 days ❄</b></div><div class="stat-line"><span>Golf Fag</span><b style="color:#8a2018">293 days ❄</b></div></div></div>
+      <div><div class="box"><div class="box-h">Trader Tiers <span style="color:var(--stamp)">ALL-TIME</span></div><div class="stat-line"><span><b>S</b> · Chase down Ass up</span><b>4</b></div><div class="stat-line"><span><b>S</b> · The Flamboyant Commish</span><b>3</b></div><div class="stat-line"><span><b>S</b> · Solid team, but I’m gay.</span><b>3</b></div><div class="stat-line"><span><b>A</b> · Arizona Queer</span><b>2</b></div><div class="stat-line"><span><b>A</b> · Egbuka Matata</span><b>2</b></div><div class="stat-line"><span><b>A</b> · Im not gay anymore</span><b>2</b></div></div></div>
+    </div>
+    <p style="font-size:12px;font-style:italic;color:#5b5142;text-align:center;margin-top:4px">Live values via FantasyCalc (dynasty / 1QB / half-PPR).</p>
+    
+    
+    <div class="grade-trade">
+      <div class="box-h">Grade the Trade</div>
+      <div class="gt-sides">
+        
+        <div class="gt-side">
+          <div class="gt-team">The Flamboyant Commish<span class="gt-grade">C-</span></div>
+          <div class="gt-got">Rashee Rice</div>
+          <div class="gt-val">value ~3524</div>
+        </div><div class="gt-swap">⇄</div>
+        <div class="gt-side">
+          <div class="gt-team">Golf Fag<span class="gt-grade">C-</span></div>
+          <div class="gt-got">Cam Skattebo</div>
+          <div class="gt-val">value ~3459</div>
+        </div>
+      </div>
+      <div class="gt-verdict"><p>This looks like two managers exchanging potential headaches. When the raw value gap is this negligible, it typically means both sides are just hoping the other guy’s bench warmer suddenly catches fire.</p></div>
+    </div>
+  </div>
+
+  
+
+  <!-- OBITUARY (on elimination) -->
+  
+
+  <!-- WEEK SCOREBOARD (all results, full-width) -->
+  <div style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <h3 class="section">Week 3 Scoreboard <span>Every Result</span></h3>
+    <div class="scoreboard"><div class="score-row"><span class="score-teams"><b>The Flamboyant Commish</b> <span class="def">def.</span> Merry Men</span><span class="score-nums"><b class="win">143.82</b><span class="sep">–</span><span class="lose">134.92</span></span></div><div class="score-row alt"><span class="score-teams"><b>Egbuka Matata</b> <span class="def">def.</span> Lil Azz Boyz</span><span class="score-nums"><b class="win">140.32</b><span class="sep">–</span><span class="lose">138.1</span></span></div><div class="score-row"><span class="score-teams"><b>Top3prediction</b> <span class="def">def.</span> Chase down Ass up</span><span class="score-nums"><b class="win">141.22</b><span class="sep">–</span><span class="lose">107.9</span></span></div><div class="score-row alt"><span class="score-teams"><b>Reigning Defending King 💩</b> <span class="def">def.</span> Im not gay anymore</span><span class="score-nums"><b class="win">145.22 <span class="hi" title="High score of the week">▲</span></b><span class="sep">–</span><span class="lose">103.74</span></span></div><div class="score-row"><span class="score-teams"><b>Arizona Queer</b> <span class="def">def.</span> Golf Fag</span><span class="score-nums"><b class="win">132.88</b><span class="sep">–</span><span class="lose">90.66</span></span></div><div class="score-row alt"><span class="score-teams"><b>Solid team, but I’m gay.</b> <span class="def">def.</span> MAHOMES &amp; MAAUTO</span><span class="score-nums"><b class="win">104.06</b><span class="sep">–</span><span class="lose">91.86</span></span></div><div class="score-row"><span class="score-teams"><b>LGBTQ Fan- that’s gay</b> <span class="def">def.</span> Bear and Twink Law Firm</span><span class="score-nums"><b class="win">93.66</b><span class="sep">–</span><span class="lose">74.94</span></span></div></div>
+  </div>
+
+  <!-- BACK PAGE FEATURE PHOTO -->
+  <div style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <div class="cols-3" style="border-top:none;margin-top:0;padding-top:0">
+      <div><figure class="plate"><img src="images/images (1).jpg" alt="" loading="lazy"></figure></div>
+      <div style="grid-column:2 / 4;display:flex;align-items:center">
+        <p style="font-family:'Playfair Display',serif;font-style:italic;font-size:18px;color:#5b5142;margin:0">Wipe your tears from Week 3 and brace yourselves. My judgment, unfortunately for you, is back next week.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>The Hetero Herald · Est. 2023</span>
+    <span>Malloy</span>
+    <span>Next Issue: Week 4</span>
+  </div>
+
+</div>
+</body></html>
