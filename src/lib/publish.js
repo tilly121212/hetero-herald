@@ -39,6 +39,18 @@ export function loadPublished() {
   return { weeks: new Set(raw.weeks), yearReview: new Set(raw.yearReview), list: raw.list ?? [] };
 }
 
+// When did the PREVIOUS issue go out? Controversy Corner uses this as its submission window:
+// only takes that arrived since the last paper are eligible. A rolling "last 7 days from now"
+// window was being used instead, which meant a single take kept resurfacing in issue after
+// issue (and made back-filling several weeks in one sitting show the same take every time).
+// Returns null when nothing has been published yet.
+export function lastIssueAt() {
+  const p = loadPublished();
+  if (!p.list.length) return null;
+  const times = p.list.map(it => it.at).filter(Boolean);
+  return times.length ? Math.max(...times) : null;
+}
+
 export function markPublished(action) {
   const p = loadPublished();
   // Idempotent: regenerate re-registers a week it rewrites, so guard against pushing a second

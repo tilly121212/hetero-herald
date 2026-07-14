@@ -19,6 +19,7 @@ const PRESERVE = [
   /fantasycalc.*history/i,
   /revisionist-?graded/i, // which trades Revisionist has already covered (graded-once-ever)
   /gradetrade-?graded/i,  // which trades Grade the Trade has already covered (graded-once-ever)
+  /controversy-?used/i,   // which reader submissions have already run (single-use takes)
 ];
 const isProtected = (name) => PRESERVE.some(rx => rx.test(name));
 

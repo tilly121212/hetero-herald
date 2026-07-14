@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.3.3 — perishable submissions, power-rankings fit
+1. READER SUBMISSIONS ARE NOW SINGLE-USE AND PERISHABLE. The same hot take was headlining
+   Controversy Corner week after week. Two causes, both fixed:
+     * There was no memory of what had already run, so nothing stopped a take being picked
+       again. Every featured submission is now fingerprinted and retired — it can never run
+       twice. (Preserved by reset, like the other memories.)
+     * The eligibility window was "the last 7 days from right now", not "since the last
+       issue" — so a single take stayed in range indefinitely, and back-filling several weeks
+       in one sitting showed the same one every time. Only takes that arrived since the
+       previous paper are eligible now.
+   A beef is perishable: if it isn't used while it's fresh, it expires — resubmit if you still
+   care. When nothing eligible remains, the column falls back to manufactured outrage as usual.
+2. POWER RANKINGS FIT INSIDE THEIR COLUMN. Rows were still running past the divider and getting
+   clipped mid-stat. The real culprit was the grid itself: a `1fr` track has an automatic
+   minimum size and refuses to shrink below its content, so the rows had nowhere to go.
+   minmax(0,1fr) removes that floor. On top of that the record/average now uses a smaller font
+   (it's supporting detail, not the headline) and the TEAM NAME is the part that absorbs the
+   squeeze — so the numbers always stay fully readable and a very long name simply ellipses.
+
+
 ## v1.3.2 — early-season framing, controversy cast, grade-the-trade memory
 1. NO MORE PLAYOFF TALK IN WEEK 2. The lead was being told, every single week from Week 1, to
    "make it OBVIOUS why this game matters to the playoff picture" and was handed standings

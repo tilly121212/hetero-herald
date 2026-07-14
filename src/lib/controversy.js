@@ -31,6 +31,37 @@ function parseCSV(text) {
   return rows;
 }
 
+// --- USED-SUBMISSION MEMORY -----------------------------------------------------------
+// Takes are SINGLE-USE and PERISHABLE. Without this, the same hot take could headline
+// Controversy Corner week after week (which is exactly what happened — one "fuk that guy"
+// ran in consecutive issues). Google Forms gives no row id, so we fingerprint the
+// submission by its timestamp + text. Preserved by reset.js.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+
+const CACHE = './data-cache';
+const USED_FILE = `${CACHE}/controversy-used.json`;
+
+const fingerprint = (s) => {
+  const raw = `${s.timestamp || s.tsMs || ''}|${(s.take || '').trim().toLowerCase()}`;
+  let h = 2166136261;
+  for (const c of raw) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+};
+
+function loadUsed() {
+  if (!existsSync(USED_FILE)) return { used: {} };
+  try { return JSON.parse(readFileSync(USED_FILE, 'utf8')); } catch { return { used: {} }; }
+}
+export function alreadyUsedSubmission(sub) {
+  return !!loadUsed().used[fingerprint(sub)];
+}
+export function markSubmissionUsed(sub, meta = {}) {
+  const store = loadUsed();
+  store.used[fingerprint(sub)] = { at: Date.now(), name: sub.name, ...meta };
+  if (!existsSync(CACHE)) mkdirSync(CACHE, { recursive: true });
+  writeFileSync(USED_FILE, JSON.stringify(store));
+}
+
 // Fetch + normalize submissions. Returns [{ name, take, timestamp }].
 // sinceMs: only submissions newer than this are returned — this is how each
 // week's paper sees ONLY that week's fresh takes without needing to delete rows.
@@ -61,6 +92,10 @@ export async function fetchSubmissions(publishedCsvUrl, { sinceMs = 0, weekTag }
 
   // TIME WINDOW: only submissions since the last issue. This is the auto-clear.
   let scoped = sinceMs ? norm.filter(s => s.tsMs >= sinceMs) : norm;
+
+  // NEVER re-run a take that has already been featured. A submission gets exactly one shot;
+  // if it isn't picked while it's fresh, it expires and the sender can simply resubmit.
+  scoped = scoped.filter(s => !alreadyUsedSubmission(s));
 
   // If the form also captures a week, honor that as a stricter filter.
   if (weekTag != null) {

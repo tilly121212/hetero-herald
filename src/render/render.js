@@ -9,6 +9,8 @@ import { playoffRace, playoffRaceActive } from '../lib/playoffs.js';
 import { buildStandings, benchCrimeReport } from '../lib/analyze.js';
 import { weeksThrough, saveRankings, prevRankings, saveRumors, priorRumors } from '../lib/season-db.js';
 import { deltaReason, markGraded, markSnapGraded } from '../lib/revisionist.js';
+import { lastIssueAt } from '../lib/publish.js';
+import { markSubmissionUsed } from '../lib/controversy.js';
 import { planControversy, controversyPrompt } from '../lib/controversy.js';
 import { rivalry as rivalryStats } from '../lib/analyze.js';
 import { newlyEliminated, obituaryFacts, obituaryPrompt } from '../lib/obituary.js';
@@ -601,7 +603,16 @@ export async function renderIssue(action, facts) {
     try {
       const csv = process.env.SUBMISSIONS_CSV || '';
       let subs = [];
-      if (csv) { const { fetchSubmissions } = await import('../lib/controversy.js'); subs = await fetchSubmissions(csv, { sinceMs: Date.now() - 7 * 864e5 }); }
+      if (csv) {
+        const { fetchSubmissions } = await import('../lib/controversy.js');
+        // Only takes that arrived SINCE THE LAST ISSUE are eligible. A rolling "past 7 days"
+        // window meant one submission kept coming back issue after issue — and back-filling
+        // several weeks in one sitting showed the same take every single time. A beef is
+        // perishable: if it isn't used while it's fresh, it expires (resubmit if you still
+        // care). Before the first issue, fall back to a 7-day window.
+        const since = lastIssueAt() ?? (Date.now() - 7 * 864e5);
+        subs = await fetchSubmissions(csv, { sinceMs: since });
+      }
       const focusStandings = ctx.standings.map(st => ({ team: st.teamName, rec: `${st.wins}-${st.losses}`, rank: st.rank }));
       plan = planControversy(subs, {
         biggestBlowout: focusGame,
@@ -636,6 +647,11 @@ export async function renderIssue(action, facts) {
     } catch {}
     s.controversy = { mode: plan.mode, tag: plan.mode === 'submitted' ? 'Letters to the Editor' : 'Manufactured Outrage',
       bodyHtml: body, pull: cPull, submittedTake: plan.submission?.take || '', submitter: plan.submission?.name || '' };
+    // Burn the take — SINGLE USE. Marked only after it has actually rendered, so a failed LLM
+    // call doesn't silently consume someone's submission and drop it on the floor.
+    if (plan.mode === 'submitted' && plan.submission) {
+      try { markSubmissionUsed(plan.submission, { week: wk, season: facts.season }); } catch {}
+    }
     s.backPageCaption = lastWord;
   }
 
@@ -820,23 +836,26 @@ export async function renderIssue(action, facts) {
       const arrow = movementArrow(r.roster_id, i, prev);
       const red = i === order.length - 1 ? 'color:#8a2018;' : '';
       const detail = r.rec ? `${r.rec} \u00b7 ${num(r.avg)} avg` : `${num(r.avg)}`;
-      // ONE LINE PER ROW, and it must STAY INSIDE THE COLUMN.
-      // The row is a non-wrapping flex line. The NAME is the only part allowed to shrink —
-      // and it needs BOTH `min-width:0` and `overflow:hidden` to do so: a flex child refuses
-      // to shrink below its content width without min-width:0, which is why long names were
-      // punching out of the column and bleeding into the standings table beside it. The
-      // record/average is never truncated (it's the actual information), so a very long team
-      // name simply ellipses.
-      return `<p style="${red}display:flex;align-items:baseline;gap:6px;overflow:hidden">` +
-        `<b style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i + 1}. ${esc(r.name)}</b>` +
+      // ONE LINE PER ROW, AND IT MUST FIT INSIDE THE COLUMN.
+      // Rows were still wider than the column and clipping at the divider — the stats were
+      // getting chopped in half because they were flex:none (unshrinkable), so the browser had
+      // nothing to give. Now: the STATS are smaller (they're supporting detail, not the
+      // headline) and are pinned as the last thing to go, while the NAME is the flexible part
+      // that ellipses when space runs out. The numbers stay fully readable; a very long team
+      // name simply trails off with an ellipsis — which is the right trade.
+      return `<p style="${red}display:flex;align-items:baseline;gap:5px;overflow:hidden;max-width:100%">` +
+        `<b style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i + 1}. ${esc(r.name)}</b>` +
         `<span style="flex:none;white-space:nowrap">${arrow}</span>` +
-        `<span style="flex:none;white-space:nowrap;color:#8a7f6a">(${detail})</span></p>`;
+        `<span style="flex:none;white-space:nowrap;color:#8a7f6a;font-size:11.5px">(${detail})</span></p>`;
     };
     // Explicit even split: first half left, second half right, so 14 teams give a clean 7/7.
     const half = Math.ceil(order.length / 2);
     const leftCol = order.slice(0, half).map((r, i) => lineFor(r, i)).join('');
     const rightCol = order.slice(half).map((r, i) => lineFor(r, i + half)).join('');
-    const lines = `<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:28px"><div>${leftCol}</div><div>${rightCol}</div></div>`;
+    // `1fr 1fr` alone does NOT let a column shrink below its content — a grid track has an
+    // automatic minimum size, which is why the right column was pushing past the divider
+    // instead of ellipsing. minmax(0,1fr) removes that floor so the rows inside can truncate.
+    const lines = `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px"><div style="min-width:0;padding-right:4px">${leftCol}</div><div style="min-width:0;padding-right:4px">${rightCol}</div></div>`;
     s.powerRankings = { tag: `Week ${wk} \u00b7 By Performance, Not Just Record`, bodyHtml: lines };
     if (facts.leagueId) saveRankings(facts.leagueId, wk, order.map(r => r.roster_id));
   }
