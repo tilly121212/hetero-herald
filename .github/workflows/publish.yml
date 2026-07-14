@@ -1,0 +1,49 @@
+name: Publish The Hetero Herald
+
+on:
+  schedule:
+    - cron: '0 15 * * 2'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: herald-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm install
+
+      - name: Generate this week's issue (if any is due)
+        env:
+          LEAGUE_ID: ${{ vars.LEAGUE_ID }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          GEMINI_API_KEY: ${{ secrets.LLM_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.LLM_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.LLM_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: npm run generate
+
+      - name: Commit & publish any new issue (and persist the caches)
+        run: |
+          git config user.name  "Herald Bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add docs/ data-cache/ || true
+          if git diff --staged --quiet; then
+            echo "Nothing to publish this week."
+          else
+            git commit -m "Herald: auto-publish $(date -u +%F)"
+            git pull --rebase --autostash origin main || true
+            git push
+          fi
