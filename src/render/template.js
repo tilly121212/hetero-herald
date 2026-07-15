@@ -50,7 +50,7 @@ export function broadsheetTemplate({
   return `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Hetero Herald — Week ${week}, ${season}</title>
+<title>The Hetero Herald — ${isReview ? `${season} Season in Review` : `Week ${week}, ${season}`}</title>
 <style>${CSS}</style>
 </head><body>
 <div class="sheet">
@@ -66,7 +66,7 @@ export function broadsheetTemplate({
     <div class="sub">${esc(leagueName)} · Established 2023 · Fourteen Franchises, One Truth</div>
   </div>
   <div class="flag-bottom">
-    <span>Week ${week} · ${season} Season</span>
+    <span>${isReview ? `${season} Season in Review` : `Week ${week} · ${season} Season`}</span>
     <span class="price"></span>
     <span>Filed by V. Malloy</span>
   </div>
@@ -140,7 +140,9 @@ export function broadsheetTemplate({
     </div>
   </div>` : ''}
 
-  <!-- ROW: Upset + Bench Crime + Luck -->
+  <!-- ROW: Upset + Bench Crime + Luck (weekly only — these mean nothing in the finale, and
+       rendering the row unconditionally left three empty headings on the season review) -->
+  ${(s.upset || s.benchReport || s.luck) ? `
   <div class="cols-3">
     <div>
       <h3 class="section">Upset of the Week <span>${esc(s.upset?.tag||'Cinderella')}</span></h3>
@@ -155,9 +157,37 @@ export function broadsheetTemplate({
       ${s.luck?.boxHtml||''}
       ${quoteBlock((s.luck?.quotes||[])[0])}
     </div>
-  </div>
+  </div>` : ''}
 
-  <!-- Power Rankings (2/3) + Standings (1/3) -->
+  <!-- GAME OF THE YEAR (finale only) -->
+  ${s.gameOfYear ? `
+  <div style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <h3 class="section">Game of the Year <span>${esc(s.gameOfYear.tag||'The One We’ll Remember')}</span></h3>
+    <div class="cols-2">
+      <div class="body">${s.gameOfYear.bodyHtml||''}</div>
+      <div>${s.gameOfYear.boxHtml||''}</div>
+    </div>
+  </div>` : ''}
+
+  <!-- SHITTIEST MANAGER OF THE YEAR (finale only) -->
+  ${s.shittiestManager ? `
+  <div style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <h3 class="section">Shittiest Manager of the Year <span>${esc(s.shittiestManager.tag||'The Dishonour Roll')}</span></h3>
+    <div class="body columns">${s.shittiestManager.bodyHtml||''}</div>
+  </div>` : ''}
+
+  <!-- SEASON SUPERLATIVES + FINAL STANDINGS (finale) — or Power Rankings + Standings (weekly) -->
+  ${s.superlatives ? `
+  <div class="cols-3" style="border-top:2px solid var(--rule);margin-top:26px;padding-top:20px">
+    <div style="grid-column:1 / 3;">
+      <h3 class="section">${esc(s.superlatives.hed||'The Season in Numbers')} <span>${esc(s.superlatives.tag||'The Record Book')}</span></h3>
+      <div class="box" style="margin-top:8px">${s.superlatives.rowsHtml||''}</div>
+    </div>
+    <div>
+      <h3 class="section">${esc(s.standings?.hed||'Final Standings')} <span>Standings</span></h3>
+      ${s.standings?.tableHtml||''}
+    </div>
+  </div>` : `
   <div class="cols-3">
     <div style="grid-column:1 / 3;">
       <h3 class="section">Malloy's Power Rankings <span>${esc(s.powerRankings?.tag||`Week ${week} · Op-Ed`)}</span></h3>
@@ -167,7 +197,7 @@ export function broadsheetTemplate({
       <h3 class="section">${esc(s.standings?.hed||`After Week ${week}`)} <span>Standings</span></h3>
       ${s.standings?.tableHtml||''}
     </div>
-  </div>
+  </div>`}
 
   <!-- TRADE WINDS (rumor mill) -->
   ${s.tradeWinds ? `
@@ -245,7 +275,7 @@ export function broadsheetTemplate({
   <div class="foot">
     <span>The Hetero Herald · Est. 2023</span>
     <span>${esc(tagline)}</span>
-    <span>Next Issue: Week ${week+1}</span>
+    <span>${isReview ? 'The Final Issue · See You Next Season' : `Next Issue: Week ${week+1}`}</span>
   </div>
 
 </div>

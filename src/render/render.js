@@ -6,8 +6,8 @@
 import { PERSONA, buildSectionPrompt, callLLM, writeQuote } from '../lib/writer.js';
 import { broadsheetTemplate } from './template.js';
 import { playoffRace, playoffRaceActive } from '../lib/playoffs.js';
-import { buildStandings, benchCrimeReport } from '../lib/analyze.js';
-import { weeksThrough, saveRankings, prevRankings, saveRumors, priorRumors } from '../lib/season-db.js';
+import { buildStandings, benchCrimeReport, seasonSuperlatives, gameOfTheYear, incompetenceReport } from '../lib/analyze.js';
+import { weeksThrough, allSeasonGames, saveRankings, prevRankings, saveRumors, priorRumors } from '../lib/season-db.js';
 import { deltaReason, markGraded, markSnapGraded } from '../lib/revisionist.js';
 import { lastIssueAt } from '../lib/publish.js';
 import { markSubmissionUsed } from '../lib/controversy.js';
@@ -488,6 +488,101 @@ export async function renderIssue(action, facts) {
   const gow = playoffLead || leadPick?.game || ctx.closest || ctx.thisWeek[0];
   const isReview = action.type === 'YEAR_REVIEW';
   const s = {};
+
+  // ==========================================================================
+  // THE FINALE — Week 17. The championship AND the season in review, in one
+  // last issue. This is NOT a weekly paper: the week-to-week sections (Trade
+  // Winds' rumours, the playoff race, bench crimes, this week's trade grade)
+  // are all meaningless once the season is over, so the finale skips the whole
+  // weekly pipeline and builds its own retrospective instead.
+  // ==========================================================================
+  if (isReview) {
+    // Whole season, one flat list, WITH the week attached to each game (the DB keys games by
+    // week and the game objects carry no .week of their own — a naive flatten loses it, which
+    // is why every record was citing "Wk undefined").
+    const allGames = facts.leagueId ? allSeasonGames(facts.leagueId) : ctx.thisWeek;
+    const nameOf = (rid) => ctx.name(rid);
+    const finalStandings = ctx.standings;
+    const playoffStart = facts.playoffStart || ((facts.regWeeks || 14) + 1);
+
+    // --- who actually won it? the championship game is the last winners-bracket game ---
+    let champion = null, runnerUp = null, titleGame = null;
+    if (facts.bracket?.length) {
+      const isWin = (g) => !(g.t1_from && g.t1_from.l != null) && !(g.t2_from && g.t2_from.l != null) && (g.p == null || g.p === 1);
+      const finalRound = Math.max(...facts.bracket.map(g => g.r));
+      const fg = facts.bracket.find(g => g.r === finalRound && isWin(g) && g.w != null);
+      if (fg) {
+        champion = nameOf(fg.w); runnerUp = nameOf(fg.l);
+        const played = allGames.find(g => (g.winner === fg.w && g.loser === fg.l) || (g.winner === fg.l && g.loser === fg.w));
+        if (played) titleGame = { winner: nameOf(played.winner), loser: nameOf(played.loser),
+                                 winnerPts: played.winnerPts, loserPts: played.loserPts, margin: played.margin };
+      }
+    }
+
+    const sup = seasonSuperlatives(allGames, nameOf);
+    const goty = gameOfTheYear(allGames, nameOf, { playoffStart });
+    const inc = incompetenceReport(allGames, finalStandings, nameOf, { staleness: facts.staleness || [] });
+
+    // --- LEAD: the championship game ---
+    {
+      const df = { champion, runnerUp, titleGame, season: facts.season,
+        championRecord: finalStandings.find(st => st.teamName === champion)
+          ? `${finalStandings.find(st => st.teamName === champion).wins}-${finalStandings.find(st => st.teamName === champion).losses}` : null,
+        note: `This is THE FINAL ISSUE of the ${facts.season} season — the championship, and the last word on the year. ${champion ? `${champion} is the CHAMPION, beating ${runnerUp}${titleGame ? ` ${num(titleGame.winnerPts)}-${num(titleGame.loserPts)}` : ''} in the title game.` : 'Crown the champion.'} Write a HEADLINE, a one-sentence DEK, a punchy PULL-QUOTE, and the BODY. Format exactly as: HED: ...\\nDEK: ...\\nPULL: ...\\nBODY: ... Break the BODY into 2-3 short paragraphs (blank line between them). Treat it with the weight of a title: this is the story of the whole season resolving. Do NOT recap other games.` };
+      let hed = champion ? `${champion} Are Champions` : `${facts.season}: The Season in Review`;
+      let dek = '', pull = '', body = '';
+      try {
+        const raw = await callLLM(buildSectionPrompt('lead', df, { name: facts.leagueName, week: wk }).replace(/\{WEEK\}/g, wk), { provider: provider() });
+        const line = (x) => x.replace(/\{WEEK\}/g, wk).replace(/\*\*(.+?)\*\*/g, '$1').replace(EMOJI, '').trim();
+        const f = parseLabeledFields(raw, ['HED', 'DEK', 'PULL', 'BODY']);
+        hed = line(f.hed || hed); dek = line(f.dek || ''); pull = line(f.pull || '');
+        body = cleanProse(f.body || raw.replace(/\b(HED|DEK|PULL|BODY)\s*:\s*/gi, ''), { week: wk });
+        c.ok++; console.log('      \u2713 finale lead');
+      } catch (e) { c.failed++; body = `<p class="drop">${esc(champion || 'The season')} takes the title.</p>`; }
+      s.lead = { kicker: `${facts.season} Championship`, hed, dek, pull, bodyHtml: body,
+        sideBoxHtml: titleGame
+          ? `<div class="box"><div class="box-h">Final \u00b7 The Championship</div><div class="stat-line"><span>${esc(titleGame.winner)}</span><b>${num(titleGame.winnerPts)}</b></div><div class="stat-line"><span>${esc(titleGame.loser)}</span><b>${num(titleGame.loserPts)}</b></div><div class="stat-line" style="border:none;margin-top:6px"><span>Margin</span><b>${num(titleGame.margin)}</b></div></div>`
+          : '' };
+    }
+
+    // --- GAME OF THE YEAR ---
+    if (goty) {
+      const df = { ...goty, note: `Write the GAME OF THE YEAR column. The game: ${goty.winner} beat ${goty.loser} ${num(goty.winnerPts)}-${num(goty.loserPts)} in week ${goty.week}${goty.isPlayoff ? ' (a PLAYOFF game)' : ''} — chosen because it was ${goty.why} (margin ${num(goty.margin)}, combined ${num(goty.total)} points). Make the case for why THIS was the game of the season. ONE game only.` };
+      s.gameOfYear = { tag: goty.isPlayoff ? 'Postseason \u00b7 The One We\u2019ll Remember' : 'The One We\u2019ll Remember',
+        bodyHtml: await proseOr('upset', df, facts, `<p class="drop">${esc(goty.winner)} and ${esc(goty.loser)} gave us the game of the year in Week ${goty.week}, ${num(goty.winnerPts)}\u2013${num(goty.loserPts)}.</p>`, c),
+        boxHtml: `<div class="box"><div class="box-h">Game of the Year \u00b7 Wk ${goty.week}</div><div class="stat-line"><span>${esc(goty.winner)}</span><b>${num(goty.winnerPts)}</b></div><div class="stat-line"><span>${esc(goty.loser)}</span><b>${num(goty.loserPts)}</b></div><div class="stat-line" style="border:none;margin-top:6px"><span>Margin</span><b>${num(goty.margin)}</b></div></div>` };
+    }
+
+    // --- SHITTIEST MANAGER OF THE YEAR (Malloy picks; the engine only supplies evidence) ---
+    {
+      const df = { candidates: inc.candidates, neverTradedAllYear: inc.neverTraded,
+        note: `Write the "SHITTIEST MANAGER OF THE YEAR" award. YOU decide the winner from the evidence below and make the case — do not just crown the worst record if a funnier, more damning case exists (a manager who scored plenty and still lost; one who left a mountain of points on the bench; a coward who never made a single trade all year). Name ONE winner, state plainly why they earned it, and cite the real numbers given. Brutal, funny, football-only. Use ONLY the teams and numbers provided — never invent a manager or a stat.` };
+      s.shittiestManager = { tag: 'The Dishonour Roll',
+        bodyHtml: await proseOr('controversy', df, facts, `<p class="drop">The committee deliberated. The committee wept. No award could capture it.</p>`, c) };
+    }
+
+    // --- SEASON SUPERLATIVES (compact stats box) ---
+    if (sup) {
+      const row = (label, value) => `<div class="stat-line"><span>${label}</span><b>${value}</b></div>`;
+      const parts = [];
+      if (sup.highestScore)   parts.push(row('Highest score', `${esc(sup.highestScore.team)} \u00b7 ${num(sup.highestScore.pts)} (Wk ${sup.highestScore.week})`));
+      if (sup.biggestBlowout) parts.push(row('Biggest blowout', `${esc(sup.biggestBlowout.winner)} by ${num(sup.biggestBlowout.margin)}`));
+      if (sup.closestGame)    parts.push(row('Closest game', `${num(sup.closestGame.margin)} pts (Wk ${sup.closestGame.week})`));
+      if (sup.highestCombined) parts.push(row('Biggest shootout', `${num(sup.highestCombined.total)} combined (Wk ${sup.highestCombined.week})`));
+      if (sup.unluckiest)     parts.push(row('Unluckiest', `${esc(sup.unluckiest.team)} (${sup.unluckiest.wins}-${sup.unluckiest.losses}, ${num(sup.unluckiest.pf)} PF)`));
+      if (sup.luckiest)       parts.push(row('Luckiest', `${esc(sup.luckiest.team)} (${sup.luckiest.wins}-${sup.luckiest.losses})`));
+      s.superlatives = { hed: `${facts.season} in Numbers`, tag: 'The Record Book', rowsHtml: parts.join('') };
+    }
+
+    // --- FINAL STANDINGS ---
+    s.standings = { hed: `Final Standings \u00b7 ${facts.season}`, tableHtml: standingsTable(finalStandings) };
+
+    console.log(`      Sections: ${c.ok} ok, ${c.failed} failed.`);
+    return broadsheetTemplate({
+      leagueName: facts.leagueName, season: facts.season, week: wk, isReview: true,
+      s, identity: facts.identity, images: facts.images ?? [], tagline: PERSONA.tagline,
+      formLink: process.env.FORM_LINK || '' });
+  }
 
   // Subject distribution: track which games have been used as a section's MAIN focus,
   // so no two sections lead with the same matchup. Each game-picking section calls

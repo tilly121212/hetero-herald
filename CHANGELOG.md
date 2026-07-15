@@ -1,5 +1,38 @@
 # Changelog
 
+## v1.4.0 — The Finale: championship + season in review
+The last feature. Week 17 is now a genuine SEASON FINALE rather than a weekly paper wearing a
+review's filename — it publishes the championship AND the year's retrospective as the final
+issue of the season, and nothing goes out after it.
+
+It skips the weekly pipeline entirely, because none of it means anything once the season is
+over: no trade rumours, no playoff race, no bench-crime blotter, no power rankings, no
+scoreboard. (Those sections used to render unconditionally, which would have left a row of
+empty headings on the review.) What it runs instead:
+
+  * THE CHAMPIONSHIP — the lead. Who won the title, and the story of the season resolving.
+    The champion is read from the winners bracket, with the title game's score in the box.
+  * GAME OF THE YEAR — chosen by a cascade, not one metric: a playoff game that was a
+    nail-biter or a shootout gets first refusal; failing that, a late regular-season game that
+    was close AND actually mattered; failing that, simply the best game there was. Malloy is
+    told WHY it was picked so he can argue the case.
+  * SHITTIEST MANAGER OF THE YEAR — the engine deliberately picks no winner. It gathers the
+    evidence (points left on the bench all year, times blown out by 40+, scoring vs. record,
+    who never made a single trade) and Malloy crowns whoever he can build the funniest,
+    most damning case against. A formula would just crown the worst record; this way the
+    coward who never traded, or the manager who scored a mountain and still lost, can win it.
+  * THE SEASON IN NUMBERS — a compact record book: highest score, biggest blowout, closest
+    game, biggest shootout, luckiest and unluckiest teams.
+  * FINAL STANDINGS.
+
+Masthead, page title and footer are review-aware ("2025 Season in Review", "The Final Issue ·
+See You Next Season" instead of "Next Issue: Week 18").
+
+Also fixed while building it: the season DB keys games by week but the game objects carry no
+week of their own, so flattening the season lost it and every record cited "Wk undefined".
+allSeasonGames() now keeps the week attached.
+
+
 ## v1.3.3 — perishable submissions, power-rankings fit
 1. READER SUBMISSIONS ARE NOW SINGLE-USE AND PERISHABLE. The same hot take was headlining
    Controversy Corner week after week. Two causes, both fixed:

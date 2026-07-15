@@ -44,6 +44,21 @@ export function weeksThrough(leagueId, throughWeek) {
   return out;
 }
 
+// Every game of the season as ONE flat list, with the week number attached to each game.
+// The DB keys games by week and the game objects themselves carry no .week, so a naive
+// flatten loses it — which is how the season review ended up reporting "Wk undefined" for
+// every record it cited. The year-in-review needs the whole season in one pass, with weeks.
+export function allSeasonGames(leagueId, throughWeek = 25) {
+  const db = loadSeason(leagueId);
+  const out = [];
+  for (let w = 1; w <= throughWeek; w++) {
+    const games = db.weeks?.[String(w)];
+    if (!Array.isArray(games)) continue;
+    for (const g of games) out.push({ ...g, week: w });
+  }
+  return out;
+}
+
 // Save a week's power-ranking order (array of roster_ids, best->worst) so next week
 // can compute real movement.
 export function saveRankings(leagueId, week, orderedRosterIds) {

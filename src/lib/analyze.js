@@ -132,6 +132,145 @@ export function rivalry(a, b, historicalGames, thisSeasonGames) {
   };
 }
 
+// ============================================================================
+// SEASON REVIEW — whole-season analysis for the year-end (Week 17) finale.
+// Everything here looks across the ENTIRE season, not a single week.
+// ============================================================================
+
+// Every superlative the finale's stats box needs, computed from the full season.
+// `allGames` is the flattened list of every game played (regular season + playoffs).
+export function seasonSuperlatives(allGames, nameOf) {
+  if (!allGames?.length) return null;
+  let highest = null, blowout = null, closest = null, shootout = null;
+  const pf = {}, pa = {}, wins = {}, losses = {};
+
+  for (const g of allGames) {
+    const total = g.winnerPts + g.loserPts;
+    if (!highest || g.winnerPts > highest.pts) highest = { rid: g.winner, pts: g.winnerPts, week: g.week, vs: g.loser };
+    if (!blowout || g.margin > blowout.margin) blowout = g;
+    if (!closest || g.margin < closest.margin) closest = g;
+    if (!shootout || total > shootout.total) shootout = { ...g, total: +total.toFixed(2) };
+
+    pf[g.winner] = +((pf[g.winner] || 0) + g.winnerPts).toFixed(2);
+    pf[g.loser] = +((pf[g.loser] || 0) + g.loserPts).toFixed(2);
+    pa[g.winner] = +((pa[g.winner] || 0) + g.loserPts).toFixed(2);
+    pa[g.loser] = +((pa[g.loser] || 0) + g.winnerPts).toFixed(2);
+    wins[g.winner] = (wins[g.winner] || 0) + 1;
+    losses[g.loser] = (losses[g.loser] || 0) + 1;
+  }
+
+  // LUCK: scoring a mountain of points and still losing is the definition of unlucky;
+  // winning while barely scoring is the definition of blessed.
+  const rosters = [...new Set([...Object.keys(pf), ...Object.keys(pa)])].map(Number);
+  const teams = rosters.map(rid => {
+    const w = wins[rid] || 0, l = losses[rid] || 0;
+    return { rid, name: nameOf(rid), wins: w, losses: l, pf: pf[rid] || 0, pa: pa[rid] || 0 };
+  }).filter(t => t.wins + t.losses > 0);
+  const unluckiest = teams.slice().sort((a, b) => (b.pf / Math.max(1, b.wins)) - (a.pf / Math.max(1, a.wins)))[0] || null;
+  const luckiest  = teams.slice().sort((a, b) => (a.pa / Math.max(1, a.wins)) - (b.pa / Math.max(1, b.wins)))[0] || null;
+
+  const g2 = (g) => g ? {
+    winner: nameOf(g.winner), loser: nameOf(g.loser),
+    winnerPts: g.winnerPts, loserPts: g.loserPts, margin: g.margin, week: g.week,
+  } : null;
+
+  return {
+    highestScore: highest ? { team: nameOf(highest.rid), pts: highest.pts, week: highest.week, vs: nameOf(highest.vs) } : null,
+    biggestBlowout: g2(blowout),
+    closestGame: g2(closest),
+    highestCombined: shootout ? { ...g2(shootout), total: shootout.total } : null,
+    unluckiest: unluckiest ? { team: unluckiest.name, wins: unluckiest.wins, losses: unluckiest.losses, pf: unluckiest.pf } : null,
+    luckiest:  luckiest  ? { team: luckiest.name,  wins: luckiest.wins,  losses: luckiest.losses,  pf: luckiest.pf }  : null,
+  };
+}
+
+// GAME OF THE YEAR — a cascade, not one metric:
+//   1. A PLAYOFF game that was a nail-biter or a shootout (the stakes live in the postseason,
+//      so it gets first refusal).
+//   2. Otherwise a late regular-season game that actually MATTERED and was close — the kind
+//      that decides who plays on.
+//   3. Otherwise simply the best game there was: the tightest, or the biggest shootout.
+// Returns the game AND why it was chosen, so Malloy can argue the case.
+export function gameOfTheYear(allGames, nameOf, { playoffStart = 15 } = {}) {
+  if (!allGames?.length) return null;
+  const withMeta = allGames.map(g => ({
+    ...g,
+    total: +(g.winnerPts + g.loserPts).toFixed(2),
+    isPlayoff: g.playoff === true || (g.week != null && g.week >= playoffStart),
+  }));
+
+  const totals = withMeta.map(g => g.total).sort((a, b) => b - a);
+  const bigTotal = totals[Math.floor(totals.length * 0.15)] ?? totals[0];   // top ~15% = a shootout
+  const isTight = (g) => g.margin <= 10;
+  const isShootout = (g) => g.total >= bigTotal;
+
+  const pick = (list) => {
+    if (!list.length) return null;
+    return list.slice().sort((a, b) => {
+      const at = isTight(a) ? 1 : 0, bt = isTight(b) ? 1 : 0;
+      if (at !== bt) return bt - at;               // tight games first
+      if (at === 1) return a.margin - b.margin;    // both tight -> tightest wins
+      return b.total - a.total;                    // else -> biggest shootout
+    })[0];
+  };
+
+  let chosen = null, why = '';
+  const playoffs = withMeta.filter(g => g.isPlayoff);
+  const specialPlayoff = playoffs.filter(g => isTight(g) || isShootout(g));
+  if (specialPlayoff.length) {
+    chosen = pick(specialPlayoff);
+    why = isTight(chosen) ? 'a playoff game decided by a whisker' : 'a playoff shootout';
+  }
+  if (!chosen) {
+    const lateStakes = withMeta.filter(g => !g.isPlayoff && g.week >= playoffStart - 4 && isTight(g));
+    if (lateStakes.length) {
+      chosen = pick(lateStakes);
+      why = 'a late-season nail-biter with a playoff berth hanging on it';
+    }
+  }
+  if (!chosen) {
+    chosen = pick(withMeta);
+    why = chosen && isTight(chosen) ? 'the closest game of the year' : 'the highest-scoring game of the year';
+  }
+  if (!chosen) return null;
+
+  return {
+    winner: nameOf(chosen.winner), loser: nameOf(chosen.loser),
+    winnerPts: chosen.winnerPts, loserPts: chosen.loserPts,
+    margin: chosen.margin, total: chosen.total, week: chosen.week,
+    isPlayoff: chosen.isPlayoff, why,
+  };
+}
+
+// SHITTIEST MANAGER — the engine deliberately does NOT pick a winner. It gathers every
+// incompetence signal it can find and hands them to Malloy, who builds the case and chooses
+// the angle himself. A formula would always crown the worst RECORD; Malloy can crown the
+// manager who scored plenty and still lost, or the coward who never made a single trade.
+export function incompetenceReport(allGames, standings, nameOf, { staleness = [] } = {}) {
+  const benchLeft = {}, blowoutLosses = {};
+  for (const g of allGames) {
+    if (g.loserBench != null)  benchLeft[g.loser]  = +((benchLeft[g.loser]  || 0) + g.loserBench).toFixed(2);
+    if (g.winnerBench != null) benchLeft[g.winner] = +((benchLeft[g.winner] || 0) + g.winnerBench).toFixed(2);
+    if (g.margin >= 40) blowoutLosses[g.loser] = (blowoutLosses[g.loser] || 0) + 1;
+  }
+  const neverTraded = (staleness || []).filter(t => t.never).map(t => t.name);
+
+  const rows = (standings || []).map(st => ({
+    team: st.teamName || nameOf(st.roster_id),
+    record: `${st.wins}-${st.losses}`,
+    pointsFor: st.pf,
+    avg: st.avg,
+    pointsLeftOnBench: benchLeft[st.roster_id] ?? null,
+    blownOutBy40Plus: blowoutLosses[st.roster_id] || 0,
+    neverTradedAllYear: neverTraded.includes(st.teamName),
+  }));
+  rows.sort((a, b) => {
+    const aw = Number(a.record.split('-')[0]), bw = Number(b.record.split('-')[0]);
+    return (aw - bw) || ((a.pointsFor || 0) - (b.pointsFor || 0));
+  });
+  return { candidates: rows.slice(0, 6), neverTraded };
+}
+
 // --- Compressed roster profiles for Trade Winds' strategic-misalignment rumors.
 // For EVERY team, surface only the extremes that matter: the oldest few assets and the
 // youngest few (flagged starter/bench), plus their record. The ENGINE makes no judgment
