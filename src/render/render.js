@@ -520,7 +520,17 @@ export async function renderIssue(action, facts) {
     }
 
     const sup = seasonSuperlatives(allGames, nameOf);
-    const goty = gameOfTheYear(allGames, nameOf, { playoffStart });
+    // Winners-bracket games only (roster-id keys), so Game of the Year can exclude
+    // losers/consolation playoff games — a nail-biter between two eliminated teams is stakes-free.
+    let winnersGameKeys = null;
+    if (facts.bracket?.length) {
+      const isWin = (g) => !(g.t1_from && g.t1_from.l != null) && !(g.t2_from && g.t2_from.l != null) && (g.p == null || g.p === 1);
+      winnersGameKeys = new Set();
+      for (const g of facts.bracket) {
+        if (isWin(g) && g.w != null && g.l != null) winnersGameKeys.add(`${g.w}-${g.l}`);
+      }
+    }
+    const goty = gameOfTheYear(allGames, nameOf, { playoffStart, winnersGameKeys });
     const inc = incompetenceReport(allGames, finalStandings, nameOf, { staleness: facts.staleness || [] });
 
     // --- LEAD: the championship game ---
@@ -566,11 +576,10 @@ export async function renderIssue(action, facts) {
       const row = (label, value) => `<div class="stat-line"><span>${label}</span><b>${value}</b></div>`;
       const parts = [];
       if (sup.highestScore)   parts.push(row('Highest score', `${esc(sup.highestScore.team)} \u00b7 ${num(sup.highestScore.pts)} (Wk ${sup.highestScore.week})`));
-      if (sup.biggestBlowout) parts.push(row('Biggest blowout', `${esc(sup.biggestBlowout.winner)} by ${num(sup.biggestBlowout.margin)}`));
-      if (sup.closestGame)    parts.push(row('Closest game', `${num(sup.closestGame.margin)} pts (Wk ${sup.closestGame.week})`));
-      if (sup.highestCombined) parts.push(row('Biggest shootout', `${num(sup.highestCombined.total)} combined (Wk ${sup.highestCombined.week})`));
+      if (sup.biggestBlowout) parts.push(row('Biggest blowout', `${esc(sup.biggestBlowout.winner)} vs ${esc(sup.biggestBlowout.loser)} \u00b7 ${num(sup.biggestBlowout.winnerPts)}\u2013${num(sup.biggestBlowout.loserPts)} (Wk ${sup.biggestBlowout.week})`));
+      if (sup.closestGame)    parts.push(row('Closest game', `${esc(sup.closestGame.winner)} vs ${esc(sup.closestGame.loser)} \u00b7 ${num(sup.closestGame.winnerPts)}\u2013${num(sup.closestGame.loserPts)} (Wk ${sup.closestGame.week})`));
+      if (sup.highestCombined) parts.push(row('Biggest shootout', `${esc(sup.highestCombined.winner)} vs ${esc(sup.highestCombined.loser)} \u00b7 ${num(sup.highestCombined.winnerPts)}\u2013${num(sup.highestCombined.loserPts)} (Wk ${sup.highestCombined.week})`));
       if (sup.unluckiest)     parts.push(row('Unluckiest', `${esc(sup.unluckiest.team)} (${sup.unluckiest.wins}-${sup.unluckiest.losses}, ${num(sup.unluckiest.pf)} PF)`));
-      if (sup.luckiest)       parts.push(row('Luckiest', `${esc(sup.luckiest.team)} (${sup.luckiest.wins}-${sup.luckiest.losses})`));
       s.superlatives = { hed: `${facts.season} in Numbers`, tag: 'The Record Book', rowsHtml: parts.join('') };
     }
 

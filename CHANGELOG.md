@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.4.1 — finale fixes: Game of the Year stakes + richer superlatives
+Two tightening fixes to the Week 17 season-in-review paper.
+
+1. GAME OF THE YEAR CAN NO LONGER BE A STAKES-FREE GAME. The cascade decided a game was a
+   "playoff game" purely by its WEEK number (week >= playoff start), so a nail-biter in the
+   LOSERS/consolation bracket — two teams already eliminated from title contention — could be
+   crowned Game of the Year. (v1.4.0 did exactly this: it picked a week-16 consolation game.)
+   Playoff eligibility now comes from the actual WINNERS bracket: only games still competing
+   for the championship qualify. Losers/consolation/placement games are excluded from
+   contention entirely, no matter how close. If no winners-bracket game stands out, it falls to
+   the best REGULAR-SEASON game (tightness decides — a genuine nail-biter wins), never to a
+   stakes-free playoff-week game. The old "late-season stakes" middle tier is gone; a true
+   nail-biter is the signal, and the regular-season fallback already covers it.
+   (Safe no-bracket behaviour: if the bracket is somehow unavailable, no playoff-week game
+   qualifies and the pick comes purely from the regular season — never a stakes-free game.)
+2. SEASON-IN-NUMBERS ROWS NOW SHOW WHO, AGAINST WHOM, AND WHEN. The blowout / closest / shootout
+   rows named only one team and a lone number ("Biggest blowout — Lil Azz Boyz by 82.34"),
+   which didn't say who they beat or when. Each now reads matchup + both scores + week
+   ("Biggest blowout — Lil Azz Boyz vs Tuki · 210-109 (Wk 4)"). The "Luckiest" row is dropped
+   (it wasn't telling of anything earned). Highest score and Unluckiest are unchanged.
+
+
 ## v1.4.0 — The Finale: championship + season in review
 The last feature. Week 17 is now a genuine SEASON FINALE rather than a weekly paper wearing a
 review's filename — it publishes the championship AND the year's retrospective as the final

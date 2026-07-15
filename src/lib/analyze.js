@@ -191,12 +191,24 @@ export function seasonSuperlatives(allGames, nameOf) {
 //      that decides who plays on.
 //   3. Otherwise simply the best game there was: the tightest, or the biggest shootout.
 // Returns the game AND why it was chosen, so Malloy can argue the case.
-export function gameOfTheYear(allGames, nameOf, { playoffStart = 15 } = {}) {
+export function gameOfTheYear(allGames, nameOf, { playoffStart = 15, winnersGameKeys = null } = {}) {
   if (!allGames?.length) return null;
+  const keyOf = (g) => `${g.winner}-${g.loser}`;
+  const keyRev = (g) => `${g.loser}-${g.winner}`;
+  // A game only counts as a PLAYOFF game if it's a WINNERS-bracket game (still competing for
+  // the title). If we have the bracket, use it; losers/consolation games are excluded from
+  // contention entirely — a stakes-free game can never be Game of the Year, however close.
+  const isWinnersPlayoff = (g) => {
+    if (g.week == null || g.week < playoffStart) return false;
+    if (winnersGameKeys) return winnersGameKeys.has(keyOf(g)) || winnersGameKeys.has(keyRev(g));
+    return g.playoff === true;   // no bracket available: fall back to explicit flag only
+  };
   const withMeta = allGames.map(g => ({
     ...g,
     total: +(g.winnerPts + g.loserPts).toFixed(2),
-    isPlayoff: g.playoff === true || (g.week != null && g.week >= playoffStart),
+    isPlayoff: isWinnersPlayoff(g),
+    // any week-15+ game NOT in the winners bracket is a losers/consolation game — no stakes
+    isDeadPlayoff: g.week != null && g.week >= playoffStart && !isWinnersPlayoff(g),
   }));
 
   const totals = withMeta.map(g => g.total).sort((a, b) => b - a);
@@ -222,14 +234,10 @@ export function gameOfTheYear(allGames, nameOf, { playoffStart = 15 } = {}) {
     why = isTight(chosen) ? 'a playoff game decided by a whisker' : 'a playoff shootout';
   }
   if (!chosen) {
-    const lateStakes = withMeta.filter(g => !g.isPlayoff && g.week >= playoffStart - 4 && isTight(g));
-    if (lateStakes.length) {
-      chosen = pick(lateStakes);
-      why = 'a late-season nail-biter with a playoff berth hanging on it';
-    }
-  }
-  if (!chosen) {
-    chosen = pick(withMeta);
+    // No standout winners-bracket game. Fall to the REGULAR SEASON only — never a
+    // losers/consolation playoff game. Tightness decides; a genuine nail-biter wins.
+    const regular = withMeta.filter(g => !g.isPlayoff && !g.isDeadPlayoff);
+    chosen = pick(regular);
     why = chosen && isTight(chosen) ? 'the closest game of the year' : 'the highest-scoring game of the year';
   }
   if (!chosen) return null;
