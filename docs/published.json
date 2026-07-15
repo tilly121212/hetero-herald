@@ -8,7 +8,9 @@
     "2025-w7",
     "2025-w16"
   ],
-  "yearReview": [],
+  "yearReview": [
+    "2025"
+  ],
   "list": [
     {
       "kind": "weekly",
@@ -58,6 +60,13 @@
       "week": 16,
       "file": "2025-week-16.html",
       "at": 1784054413805
+    },
+    {
+      "kind": "review",
+      "season": "2025",
+      "week": 17,
+      "file": "2025-review.html",
+      "at": 1784090766159
     }
   ]
 }
