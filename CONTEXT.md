@@ -58,15 +58,16 @@ right now). Testing uses the completed **2025** league id `1188998801032708096`.
   Special Elite labels; oxblood red accents; red drop caps. **The demo (src/commands/
   demo.js output) is the visual target — "the demo is fire," match it exactly.**
 
-## Status (as of v1.4.1)
+## Status (as of v1.4.2)
 Live and deployed. Trade infrastructure (tiers, value retention, Trade Winds, Grade the Trade,
 Revisionist History), the publishing/self-seeding pipeline, GitHub Actions + Pages, and the
 Week-17 SEASON FINALE (championship lead, Game of the Year, Shittiest Manager, Season in
-Numbers, Final Standings) are all built and shipped. The roadmap/open-work sections lower down
-predate v1.2.0 and are DONE — treat them as history, not a to-do list. v1.4.1 tightened the
-finale: Game of the Year now excludes stakes-free losers/consolation playoff games, and the
-Season-in-Numbers rows show matchup + both scores + week. Deferred: image rotation
-(deck-shuffle) and the browser maintenance console.
+Numbers, and THE PAYOUTS) are all built and shipped. The roadmap/open-work sections lower down
+predate v1.2.0 and are DONE — treat them as history, not a to-do list. Recent finale work:
+v1.4.1 made Game of the Year exclude stakes-free losers/consolation playoff games and enriched
+the Season-in-Numbers rows; v1.4.2 replaced Final Standings with a Payouts section (who won each
+cash prize — places from the bracket, stat prizes from the regular season only). Deferred: image
+rotation (deck-shuffle) and the browser maintenance console.
 
 ## Status (as of v1.1.9)
 Playoffs handled properly now: bracket shows winners-only with the #1 bye, seeds LOCKED to

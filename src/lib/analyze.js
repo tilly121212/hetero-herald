@@ -279,6 +279,48 @@ export function incompetenceReport(allGames, standings, nameOf, { staleness = []
   return { candidates: rows.slice(0, 6), neverTraded };
 }
 
+// SEASON PAYOUTS — who won each of the league's cash prizes. Place prizes (1st/2nd/3rd) come
+// from the winners bracket; the stat prizes are REGULAR SEASON ONLY (weeks 1..regWeeks), so
+// playoff scores never inflate "most points" or "highest single week".
+export function seasonPayouts(allGames, bracket, nameOf, { regWeeks = 14 } = {}) {
+  const out = { first: null, second: null, third: null,
+                bestRecord: null, mostPoints: null, highestWeek: null };
+
+  // --- place prizes from the bracket ---
+  if (bracket?.length) {
+    const isWin = (g) => !(g.t1_from && g.t1_from.l != null) && !(g.t2_from && g.t2_from.l != null) && (g.p == null || g.p === 1);
+    const finalRound = Math.max(...bracket.map(g => g.r));
+    const champGame = bracket.find(g => g.r === finalRound && isWin(g) && g.w != null);
+    if (champGame) { out.first = nameOf(champGame.w); out.second = nameOf(champGame.l); }
+    const thirdGame = bracket.find(g => g.p === 3 && g.w != null);
+    if (thirdGame) out.third = nameOf(thirdGame.w);
+  }
+
+  // --- stat prizes: REGULAR SEASON ONLY ---
+  const reg = allGames.filter(g => g.week != null && g.week <= regWeeks);
+  const pf = {}, wins = {}, losses = {};
+  let highWeek = null;
+  for (const g of reg) {
+    pf[g.winner] = +((pf[g.winner] || 0) + g.winnerPts).toFixed(2);
+    pf[g.loser]  = +((pf[g.loser]  || 0) + g.loserPts).toFixed(2);
+    wins[g.winner]   = (wins[g.winner]   || 0) + 1;
+    losses[g.loser]  = (losses[g.loser]  || 0) + 1;
+    if (!highWeek || g.winnerPts > highWeek.pts) highWeek = { rid: g.winner, pts: g.winnerPts, week: g.week };
+  }
+  const rosters = [...new Set([...Object.keys(pf)])].map(Number);
+  const teams = rosters.map(rid => ({
+    rid, name: nameOf(rid), wins: wins[rid] || 0, losses: losses[rid] || 0, pf: pf[rid] || 0,
+  }));
+  // best record: most wins, points-for as tiebreaker (matches league standings rule)
+  const byRecord = teams.slice().sort((a, b) => (b.wins - a.wins) || (b.pf - a.pf))[0];
+  const byPoints = teams.slice().sort((a, b) => b.pf - a.pf)[0];
+  if (byRecord) out.bestRecord = { team: byRecord.name, wins: byRecord.wins, losses: byRecord.losses };
+  if (byPoints) out.mostPoints = { team: byPoints.name, pf: byPoints.pf };
+  if (highWeek) out.highestWeek = { team: nameOf(highWeek.rid), pts: highWeek.pts, week: highWeek.week };
+
+  return out;
+}
+
 // --- Compressed roster profiles for Trade Winds' strategic-misalignment rumors.
 // For EVERY team, surface only the extremes that matter: the oldest few assets and the
 // youngest few (flagged starter/bench), plus their record. The ENGINE makes no judgment

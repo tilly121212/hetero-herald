@@ -6,7 +6,7 @@
 import { PERSONA, buildSectionPrompt, callLLM, writeQuote } from '../lib/writer.js';
 import { broadsheetTemplate } from './template.js';
 import { playoffRace, playoffRaceActive } from '../lib/playoffs.js';
-import { buildStandings, benchCrimeReport, seasonSuperlatives, gameOfTheYear, incompetenceReport } from '../lib/analyze.js';
+import { buildStandings, benchCrimeReport, seasonSuperlatives, gameOfTheYear, incompetenceReport, seasonPayouts } from '../lib/analyze.js';
 import { weeksThrough, allSeasonGames, saveRankings, prevRankings, saveRumors, priorRumors } from '../lib/season-db.js';
 import { deltaReason, markGraded, markSnapGraded } from '../lib/revisionist.js';
 import { lastIssueAt } from '../lib/publish.js';
@@ -584,7 +584,20 @@ export async function renderIssue(action, facts) {
     }
 
     // --- FINAL STANDINGS ---
-    s.standings = { hed: `Final Standings \u00b7 ${facts.season}`, tableHtml: standingsTable(finalStandings) };
+    // THE PAYOUTS — replaces Final Standings in the finale. Who won each cash prize.
+    const pay = seasonPayouts(allGames, facts.bracket, nameOf, { regWeeks: facts.regWeeks || 14 });
+    {
+      const row = (label, who, amt) => who
+        ? `<div class="stat-line"><span>${esc(label)} \u00b7 <b>$${amt}</b></span><b>${esc(who)}</b></div>` : '';
+      const rows = [];
+      if (pay.first)       rows.push(row('1st Place', pay.first, 700));
+      if (pay.second)      rows.push(row('2nd Place', pay.second, 300));
+      if (pay.third)       rows.push(row('3rd Place', pay.third, 100));
+      if (pay.bestRecord)  rows.push(row(`Best Record (${pay.bestRecord.wins}-${pay.bestRecord.losses})`, pay.bestRecord.team, 60));
+      if (pay.mostPoints)  rows.push(row(`Most Points (${num(pay.mostPoints.pf)})`, pay.mostPoints.team, 50));
+      if (pay.highestWeek) rows.push(row(`Highest Week (${num(pay.highestWeek.pts)}, Wk ${pay.highestWeek.week})`, pay.highestWeek.team, 50));
+      s.payouts = { hed: `Payouts \u00b7 ${facts.season}`, tag: 'Who Got Paid', rowsHtml: rows.join('') };
+    }
 
     console.log(`      Sections: ${c.ok} ok, ${c.failed} failed.`);
     return broadsheetTemplate({

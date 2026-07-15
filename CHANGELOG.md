@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.4.2 — finale: Payouts section replaces Final Standings
+The Week 17 finale now closes with THE PAYOUTS instead of the full standings table — by the
+last issue of the year the standings are old news; who got PAID is the story. It computes each
+of the league's cash prizes and names the winner alongside the dollar amount:
+
+  * 1st Place ($700), 2nd ($300), 3rd ($100) — read from the winners bracket (3rd from the
+    league's third-place game).
+  * Best Record ($60) — regular season, most wins with points-for as the tiebreaker.
+  * Most Points ($50) — most regular-season points scored.
+  * Highest Week ($50) — the single highest team score of the regular season.
+
+The three stat prizes are REGULAR SEASON ONLY (weeks 1-14): playoff scores never inflate "most
+points" or "highest week". Any prize whose winner can't be determined (e.g. no third-place game
+in the bracket) simply omits its row rather than showing a blank. The weekly paper's standings
+are untouched — this swap is finale-only.
+
+
 ## v1.4.1 — finale fixes: Game of the Year stakes + richer superlatives
 Two tightening fixes to the Week 17 season-in-review paper.
 

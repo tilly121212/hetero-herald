@@ -184,8 +184,8 @@ export function broadsheetTemplate({
       <div class="box" style="margin-top:8px">${s.superlatives.rowsHtml||''}</div>
     </div>
     <div>
-      <h3 class="section">${esc(s.standings?.hed||'Final Standings')} <span>Standings</span></h3>
-      ${s.standings?.tableHtml||''}
+      <h3 class="section">${esc(s.payouts?.hed||'Payouts')} <span>${esc(s.payouts?.tag||'Who Got Paid')}</span></h3>
+      <div class="box" style="margin-top:8px">${s.payouts?.rowsHtml||''}</div>
     </div>
   </div>` : `
   <div class="cols-3">
