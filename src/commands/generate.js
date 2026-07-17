@@ -12,6 +12,7 @@ import { upsertWeek } from '../lib/season-db.js';
 import { getWinners } from '../lib/sleeper.js';
 import { loadFrontOffice } from '../lib/frontoffice.js';
 import { ensureSeeded } from '../lib/bootstrap.js';
+import { existsSync, readFileSync } from 'node:fs';
 
 const LEAGUE_ID = process.env.LEAGUE_ID || '1323107533136596992';
 
@@ -41,7 +42,54 @@ async function run() {
   console.log('      ->', action.type, action.week ? `week ${action.week}` : (action.reason || action.season || ''));
 
   if (action.type === 'SLEEP') {
-    console.log('      Nothing to publish. Paper stays dormant. Done.');
+    // OFF-SEASON MAINTENANCE. The paper doesn't publish between the finale and next season,
+    // but the league keeps moving — trades happen, managers leave and get replaced. We keep
+    // the data current every Tuesday so the first issue of next year knows everything:
+    //   1) refresh league history (self-heals after a rollover),
+    //   2) detect manager departures/arrivals into the ledger,
+    //   3) bank FantasyCalc value snapshots for any week Sleeper is filing trades under, so an
+    //      off-season trade can later be valued honestly (FantasyCalc has no historical API —
+    //      a value not banked now is gone forever). Trades themselves live permanently on
+    //      Sleeper and are always re-fetched; the irreplaceable thing is the value snapshot.
+    // Writes NO paper.
+    console.log('      Off-season. No paper — running data maintenance only.');
+    try {
+      await ensureSeeded(LEAGUE_ID, state.lastScored);
+      const { users, rosters } = await syncLeague(LEAGUE_ID);
+      // manager changes
+      try {
+        const { detectDepartures } = await import('../lib/manager-changes.js');
+        const history = existsSync('./data-cache/history.json')
+          ? JSON.parse(readFileSync('./data-cache/history.json', 'utf8')) : null;
+        const logged = detectDepartures(LEAGUE_ID, rosters, users, state.season, history);
+        if (logged.length) logged.forEach(d => console.log(`      \u2713 logged manager change on roster ${d.roster_id}: ${d.oldName} \u2192 ${d.newName}`));
+        else console.log('      \u00b7 no manager changes since last check');
+      } catch (e) { console.log('      (manager-change detection skipped:', e.message + ')'); }
+      // value snapshots for off-season trade weeks
+      try {
+        const { getFantasyCalcValues } = await import('../lib/tradedesk.js');
+        const { getTransactions } = await import('../lib/sleeper.js');
+        const { recordSnapshot } = await import('../lib/trade-values.js');
+        const fc = await getFantasyCalcValues().catch(() => null);
+        const hasV = fc && (Array.isArray(fc) ? fc.length : Object.keys(fc).length);
+        if (hasV) {
+          // find every week bucket that currently shows a trade, and bank a snapshot keyed to
+          // it (write-once). This guarantees each off-season trade's week has a matching value
+          // snapshot regardless of how Sleeper buckets off-season transactions.
+          let banked = 0;
+          for (let wk = 1; wk <= 18; wk++) {
+            let txns = null;
+            try { txns = await getTransactions(LEAGUE_ID, wk); } catch {}
+            if (!txns?.some(t => t.type === 'trade' && t.status === 'complete')) continue;
+            try { const res = recordSnapshot(state.season, wk, fc); if (res.written) { banked++; console.log(`      \u2713 banked value snapshot for week ${wk} (${res.count} players)`); } } catch {}
+          }
+          if (!banked) console.log('      \u00b7 no new off-season trade weeks to snapshot');
+        } else {
+          console.log('      (FantasyCalc values unavailable — no snapshot banked this run)');
+        }
+      } catch (e) { console.log('      (value-snapshot step skipped:', e.message + ')'); }
+    } catch (e) { console.log('      (maintenance run hit an error:', e.message + ')'); }
+    console.log('      Maintenance done. Paper stays dormant.');
     return;
   }
 
@@ -59,6 +107,17 @@ async function run() {
   const week = action.week ?? state.regWeeks;
   const { players, users, rosters, matchups } = await syncLeague(LEAGUE_ID, week);
   const identity = buildIdentity(users, rosters, { name: state.leagueName, season: state.season });
+
+  // Catch mid-season manager changes too (roster changing hands during the year), so the
+  // current issue's Controversy Corner can lead with it. Off-season changes are caught by the
+  // maintenance path above; this covers the in-season case. Never fatal.
+  try {
+    const { detectDepartures } = await import('../lib/manager-changes.js');
+    const history = existsSync('./data-cache/history.json')
+      ? JSON.parse(readFileSync('./data-cache/history.json', 'utf8')) : null;
+    const logged = detectDepartures(LEAGUE_ID, rosters, users, state.season, history);
+    if (logged.length) logged.forEach(d => console.log(`      \u2713 manager change on roster ${d.roster_id}: ${d.oldName} \u2192 ${d.newName}`));
+  } catch (e) { console.log('      (manager-change detection skipped:', e.message + ')'); }
 
   // append this just-completed week to the season database (upsert = no dupes)
   const games = A.parseWeek(matchups);

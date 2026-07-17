@@ -58,16 +58,18 @@ right now). Testing uses the completed **2025** league id `1188998801032708096`.
   Special Elite labels; oxblood red accents; red drop caps. **The demo (src/commands/
   demo.js output) is the visual target — "the demo is fire," match it exactly.**
 
-## Status (as of v1.4.2)
-Live and deployed. Trade infrastructure (tiers, value retention, Trade Winds, Grade the Trade,
-Revisionist History), the publishing/self-seeding pipeline, GitHub Actions + Pages, and the
-Week-17 SEASON FINALE (championship lead, Game of the Year, Shittiest Manager, Season in
-Numbers, and THE PAYOUTS) are all built and shipped. The roadmap/open-work sections lower down
-predate v1.2.0 and are DONE — treat them as history, not a to-do list. Recent finale work:
-v1.4.1 made Game of the Year exclude stakes-free losers/consolation playoff games and enriched
-the Season-in-Numbers rows; v1.4.2 replaced Final Standings with a Payouts section (who won each
-cash prize — places from the bracket, stat prizes from the regular season only). Deferred: image
-rotation (deck-shuffle) and the browser maintenance console.
+## Status (as of v1.5.0)
+Live and deployed. Trade infrastructure, the publishing/self-seeding pipeline, GitHub Actions +
+Pages, and the Week-17 SEASON FINALE (championship, Game of the Year, Shittiest Manager, Season
+in Numbers, Payouts) are all built and shipped. The roadmap/open-work sections lower down predate
+v1.2.0 and are DONE — history, not a to-do list. Recent work: v1.4.1 tightened Game of the Year
+(no stakes-free games) and enriched the numbers box; v1.4.2 swapped Final Standings for a Payouts
+section; v1.5.0 added OFF-SEASON DATA COLLECTION (the Tuesday run now keeps league data current
+year-round without publishing — banking value snapshots for off-season trade weeks and detecting
+manager changes) and MANAGER DEPARTURES (a roster changing hands is logged and takes over the
+first Controversy Corner after the change — Week 1 if off-season, immediately if mid-season;
+announced once, ledger + owner snapshot preserved across rollover). Deferred: image rotation
+(deck-shuffle) and the browser maintenance console.
 
 ## Status (as of v1.1.9)
 Playoffs handled properly now: bracket shows winners-only with the #1 bye, seeds LOCKED to

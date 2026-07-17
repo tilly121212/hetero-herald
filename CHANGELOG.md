@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.5.0 — off-season data collection + manager departures
+The pipeline now stays useful year-round, and a manager leaving finally gets its due.
+
+OFF-SEASON MAINTENANCE. Previously the Tuesday run did nothing in the off-season (it hit SLEEP
+and returned). Now, between the finale and next season's first issue, it keeps the league data
+current WITHOUT publishing a paper: it self-heals league history, detects manager changes, and
+banks FantasyCalc value snapshots for any week Sleeper is filing trades under. That last part
+matters because FantasyCalc has no historical API — a value not banked the week a trade happens
+is gone forever, and Revisionist History's "value then vs. value now" depends on it. Trades
+themselves live permanently on Sleeper and are always re-fetched; what we preserve is the value
+snapshot keyed to each off-season trade week (write-once, so re-runs are safe).
+
+MANAGER DEPARTURES. When a roster changes hands — someone abandons their team and a replacement
+takes over — the Herald now notices and makes a story of it. Detection uses a rolling owner
+snapshot compared against the live league, so every hand-change is caught precisely, including a
+roster that changes twice (off-season, then again mid-season). The very first run seeds its
+baseline from history.json's most recent prior season, which is how an off-season swap is caught
+even though we never ran during the actual switch. Each distinct change is logged once to a
+ledger (data-cache/manager-changes.json).
+
+CONTROVERSY CORNER TAKEOVER. A pending (un-announced) departure OVERRIDES Controversy Corner —
+above any reader submission or manufactured drama. It runs on the first issue after the change:
+Week 1 if it happened in the off-season, or the current week if a manager bails mid-season.
+Multiple departures are covered in one column (mock-eulogy for the departed, a needling welcome
+for the new blood). Once it runs, the change is marked announced and never resurfaces — but only
+after the column actually renders, so a failed LLM call can't silently swallow the announcement.
+
+ROLLOVER-SAFE. reset.js now preserves the departure ledger and the owner snapshot (like it
+already does for trade values and single-use submissions), so wiping the rebuildable cache at
+season rollover never loses departure memory or the detection baseline.
+
+
 ## v1.4.2 — finale: Payouts section replaces Final Standings
 The Week 17 finale now closes with THE PAYOUTS instead of the full standings table — by the
 last issue of the year the standings are old news; who got PAID is the story. It computes each

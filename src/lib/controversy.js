@@ -115,6 +115,14 @@ export function pickSubmission(subs, seedStr = '') {
   return subs[idx];
 }
 
+// Departure takeover. When one or more managers have left/been replaced and the change hasn't
+// been announced yet, Controversy Corner leads with it — overriding any submitted or invented
+// drama. Covers ALL pending departures in a single column.
+export function planDeparture(departures) {
+  return { mode: 'departure', departures };
+}
+
+
 // Decide what the Controversy section should be this week.
 // Returns { mode:'submitted'|'invented', submission?, seedFacts? } — the writer
 // turns this into the actual article. Section ALWAYS generates (invents if empty),
@@ -147,6 +155,24 @@ export function controversyPrompt(plan, persona, identity) {
   const castRule = teamList
     ? `\n\nTHE LEAGUE'S ONLY TEAMS (this is the complete cast — every manager you name MUST be one of these, spelled exactly):\n${teamList.map(n => `- ${esc(n)}`).join('\n')}\nHARD RULE: NEVER invent a manager, team, or person. If the take doesn't make clear who it's aimed at, pick one of the real teams above and pin it on them. You may invent the DRAMA freely — the benching, the betrayal, the scandal, the anonymous sources — but every name that appears must come from that list.`
     : `\n\nHARD RULE: NEVER invent a manager, team, or person's name. Only refer to teams that actually appear in the data you've been given.`;
+
+  if (plan.mode === 'departure') {
+    const list = (plan.departures || []).map(d =>
+      `- Roster ${d.roster_id}: "${esc(d.oldName)}" is OUT; "${esc(d.newName)}" is IN.`).join('\n');
+    const multi = (plan.departures || []).length > 1;
+    return `Write a MEATY tabloid "Controversy" column (150-220 words) in the voice of
+${persona.name}. BREAKING NEWS for the column: the league's roster has CHANGED HANDS.
+${multi ? 'Multiple teams have new management.' : 'A team has new management.'} Treat it as
+the biggest off-field story of the year — part mock-solemn eulogy for the departed manager(s),
+part wary, needling welcome for the fresh blood who has no idea what they're walking into.
+Give the departed a send-off (roast their tenure, mourn nothing sincerely); size up the
+newcomer(s) with tabloid suspicion. Football/fantasy conduct ONLY — never real-world or
+personal. Use the names EXACTLY as given, never invent a person.
+STYLE: no ALL-CAPS words for emphasis, no markdown, no emoji. Multiple paragraphs; fill the space.
+
+THE CHANGES:
+${list}`;
+  }
 
   if (plan.mode === 'submitted') {
     return `Write a MEATY tabloid "Controversy" column (140-200 words) in the voice of

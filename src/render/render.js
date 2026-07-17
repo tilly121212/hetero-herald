@@ -737,14 +737,27 @@ export async function renderIssue(action, facts) {
         topBenchCrime: null, avoidGame: gow,
       }, { season: facts.season, week: wk });
     } catch { plan = { mode: 'invented', seedFacts: focusGame }; }
+    // DEPARTURE TAKEOVER — a manager leaving/being replaced is the biggest off-field story, so
+    // it OVERRIDES any submitted or invented controversy. Fires on the first issue after the
+    // change (Week 1 if it happened in the off-season, or the current week mid-season). Each
+    // change is announced exactly once; we mark them announced only AFTER the section renders.
+    let pendingDeps = [];
+    try {
+      const { pendingDepartures } = await import('../lib/manager-changes.js');
+      pendingDeps = pendingDepartures(facts.season) || [];
+    } catch {}
+    if (pendingDeps.length) {
+      const { planDeparture } = await import('../lib/controversy.js');
+      plan = planDeparture(pendingDeps);
+    }
     // Subject distribution applies only when MANUFACTURING. A player submission dictates
     // its own topic, so it's exempt from the "avoid the lead game" rule.
     const distributionNote = (plan.mode !== 'submitted')
       ? `\n\nIMPORTANT: Do NOT write about the ${gow ? esc(gow.winnerName) + ' vs ' + esc(gow.loserName) : 'game of the week'} matchup, or any game already covered elsewhere — find your angle in a DIFFERENT game or team this week.`
       : '';
     const cprompt = controversyPrompt(plan, PERSONA, facts.identity) + distributionNote;
-    let body;
-    try { body = cleanProse(await callLLM(cprompt, { provider: provider() }), { week: wk }); c.ok++; console.log('      \u2713 controversy'); }
+    let body, controversyOk = false;
+    try { body = cleanProse(await callLLM(cprompt, { provider: provider() }), { week: wk }); c.ok++; controversyOk = true; console.log('      \u2713 controversy'); }
     catch (e) { c.failed++; console.log(`      \u2717 controversy: ${e.message}`); body = `<p class="drop">The Herald's rumor desk is quiet this week. Suspiciously quiet.</p>`; }
     // Controversy pull-quote — separately written, ABOUT this controversy story, styled
     // differently from the lead's quote. Fed the article so it stays on-topic.
@@ -762,12 +775,18 @@ export async function renderIssue(action, facts) {
       const lw = (await callLLM(lwPrompt, { provider: provider() })).trim().replace(/^["'\u201c]|["'\u201d]$/g, '').replace(/\{WEEK\}/g, wk);
       if (lw && lw.length < 220) lastWord = lw;
     } catch {}
-    s.controversy = { mode: plan.mode, tag: plan.mode === 'submitted' ? 'Letters to the Editor' : 'Manufactured Outrage',
+    s.controversy = { mode: plan.mode,
+      tag: plan.mode === 'departure' ? 'Roster Moves' : (plan.mode === 'submitted' ? 'Letters to the Editor' : 'Manufactured Outrage'),
       bodyHtml: body, pull: cPull, submittedTake: plan.submission?.take || '', submitter: plan.submission?.name || '' };
     // Burn the take — SINGLE USE. Marked only after it has actually rendered, so a failed LLM
     // call doesn't silently consume someone's submission and drop it on the floor.
     if (plan.mode === 'submitted' && plan.submission) {
       try { markSubmissionUsed(plan.submission, { week: wk, season: facts.season }); } catch {}
+    }
+    // Announce-once: only after the departure column actually rendered (a failed LLM call must
+    // not silently consume the announcement and leave the change untold next week).
+    if (plan.mode === 'departure' && controversyOk && pendingDeps.length) {
+      try { const { markDeparturesAnnounced } = await import('../lib/manager-changes.js'); markDeparturesAnnounced(pendingDeps); } catch {}
     }
     s.backPageCaption = lastWord;
   }
