@@ -50,8 +50,13 @@ export async function detectState(leagueId) {
 
   // championship concluded? (last playoff week scored)
   const champWeek = playoffStart + 2; // typical 3-round bracket end; adjust per league
-  const championshipDone = status === 'complete' ||
-    (league.metadata?.latest_league_winner_roster_id != null);
+  // Only trust CURRENT-SEASON signals: the league is genuinely marked complete, OR the
+  // championship week has actually been scored this season. We must NOT read
+  // latest_league_winner_roster_id here — in a dynasty rollover Sleeper CARRIES OVER the prior
+  // season's winner into the new league's metadata, so that field is set from day one of the
+  // new season and would wrongly fire the Week-17 finale during Week 1. (This is exactly the
+  // bug that published a 2026 "Season in Review" while only Week 1 had been played.)
+  const championshipDone = status === 'complete' || lastScored >= champWeek;
 
   return {
     leagueId, season: league.season, status, phase,

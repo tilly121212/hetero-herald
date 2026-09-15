@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.5.1 — fix: premature "Season in Review" during Week 1
+The Week-17 finale (championship + season review) could fire in the middle of a brand-new
+season. It happened live: the 2026 paper published a "Season in Review" when only Week 1 had
+been played.
+
+Cause: the finale trigger (`championshipDone` in sync.js) treated the presence of
+`latest_league_winner_roster_id` in the league metadata as proof the championship was over. But
+in a dynasty rollover, Sleeper CARRIES OVER the prior season's winner into the new league's
+metadata — so that field is populated from day one of the new season, making the code think the
+title had already been decided.
+
+Fix: `championshipDone` now trusts only current-season signals — the league is genuinely marked
+`complete`, OR the championship week has actually been scored this season (`lastScored >=
+champWeek`). The carried-over winner field is no longer read. (`decideAction` already used the
+same `lastScored >= champWeek` test, so the two are now consistent.) Verified: the finale no
+longer fires in Week 1, but still fires correctly when the championship week is actually scored
+or Sleeper marks the season complete.
+
+NOTE: if a bad `*-review.html` was already published, delete that file and remove its entry from
+docs/published.json (both the `yearReview` list and the `list` array) so the archive is correct
+and the real finale can fire at season's end.
+
+
 ## v1.5.0 — off-season data collection + manager departures
 The pipeline now stays useful year-round, and a manager leaving finally gets its due.
 
