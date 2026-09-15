@@ -2,7 +2,9 @@
   "weeks": [
     "2026-w1"
   ],
-  "yearReview": [],
+  "yearReview": [
+    "2026"
+  ],
   "list": [
     {
       "kind": "weekly",
@@ -10,6 +12,13 @@
       "week": 1,
       "file": "2026-week-1.html",
       "at": 1789491182644
+    },
+    {
+      "kind": "review",
+      "season": "2026",
+      "week": 17,
+      "file": "2026-review.html",
+      "at": 1789497635549
     }
   ]
 }
