@@ -1,1 +1,15 @@
-{"weeks":[],"yearReview":[],"list":[]}
+{
+  "weeks": [
+    "2026-w1"
+  ],
+  "yearReview": [],
+  "list": [
+    {
+      "kind": "weekly",
+      "season": "2026",
+      "week": 1,
+      "file": "2026-week-1.html",
+      "at": 1789491182644
+    }
+  ]
+}
