@@ -144,7 +144,8 @@ async function run() {
                   identity, games, players, images, rosterIds, regWeeks: state.regWeeks, playerMap, bracket,
                   playoffStart: state.playoffStart,
                   staleness: fo.staleness, traderTiers: fo.traderTiers, gradeThisTrade: fo.gradeThisTrade,
-                  revisionist: fo.revisionist, rosterDepth: fo.rosterDepth, rosterProfiles: fo.rosterProfiles };
+                  revisionist: fo.revisionist, rosterDepth: fo.rosterDepth, rosterProfiles: fo.rosterProfiles,
+                  weeklyTrades: fo.weeklyTrades };
 
   console.log('[4/5] Writing articles via LLM provider:', process.env.LLM_PROVIDER || 'anthropic');
   const html = await renderIssue(action, facts);   // calls writer.js under the hood

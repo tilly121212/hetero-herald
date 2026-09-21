@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.5.2 — trades: all-time counts, correct staleness, working weekly box
+Four fixes to the trade subsystem, all stemming from it only ever looking at the current season.
+
+1. ALL-TIME TRADE DATA. Trader Tiers counted only the current season's trades, so early in a new
+   season the "top tier" showed just 1 trade. The pipeline now gathers trades from EVERY season
+   the league has existed (walking history.json's league chain, each season's trades keyed to
+   that season's own roster->owner map) via collectTradesAllYears — which existed but was never
+   called. Falls back to current-season-only if history is unavailable, so it can't break.
+
+2. STALENESS KEYED BY OWNER_ID. "Days since last trade" tracked by roster slot, which
+   misattributes history once a roster changes hands between seasons (the new manager would
+   inherit the old manager's trade dates). tradeRecency now keys by durable owner_id and maps
+   back to the current roster for display — the same owner-based approach rivalries already use.
+   This was required for #1: feeding multi-year data to the old roster-keyed logic would have
+   made staleness wrong.
+
+3. "THIS WEEK'S TRADES" BOX NOW WORKS. It read an undefined value (weeklyTrades was never set
+   anywhere) and always said "No trades logged this week." It's now populated with the trades
+   filed under the week being published, threaded through both generate and regenerate.
+
+4. STALENESS WORDING. Clearer labels so the numbers are unambiguous: header now reads "DAYS
+   SINCE LAST TRADE", values read "142 days ago" / "Never traded" instead of "142 days" /
+   "Never".
+
+BONUS (no code needed): Grade the Trade already works through a backlog one-per-week and never
+repeats (its graded-once ledger persists across resets). With #1 finally feeding it all-time
+trades, it now reaches back through the league's entire trade history, not just this season.
+
+NOTE: #1 adds Sleeper API calls per run (each prior season's transactions), so runs take a bit
+longer. Sleeper's rate limits are generous; this is expected, not a problem.
+
+
 ## v1.5.1 — fix: premature "Season in Review" during Week 1
 The Week-17 finale (championship + season review) could fire in the middle of a brand-new
 season. It happened live: the 2026 paper published a "Season in Review" when only Week 1 had

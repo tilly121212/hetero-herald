@@ -1064,8 +1064,8 @@ export async function renderIssue(action, facts) {
   // TRADE DESK — staleness + tiers wired from trade data if provided in facts
   {
     const staleHtml = facts.staleness?.length
-      ? `<div class="box"><div class="box-h">Staleness Watch <span style="color:var(--stamp)">90+ DAYS FLAGGED</span></div>${facts.staleness.slice(0, 6).map(t =>
-          `<div class="stat-line"><span>${esc(t.name)}</span><b${(t.never || t.days >= 90) ? ' style="color:#8a2018"' : ''}>${t.never ? 'Never' : t.days + ' days'}${(!t.never && t.days >= 90) ? ' \u2744' : ''}</b></div>`).join('')}</div>`
+      ? `<div class="box"><div class="box-h">Staleness Watch <span style="color:var(--stamp)">DAYS SINCE LAST TRADE</span></div>${facts.staleness.slice(0, 6).map(t =>
+          `<div class="stat-line"><span>${esc(t.name)}</span><b${(t.never || t.days >= 90) ? ' style="color:#8a2018"' : ''}>${t.never ? 'Never traded' : t.days + ' days ago'}${(!t.never && t.days >= 90) ? ' \u2744' : ''}</b></div>`).join('')}</div>`
       : `<div class="box"><div class="box-h">Staleness Watch</div><p style="font-style:italic;color:#5b5142">Run build-history to populate trade dates.</p></div>`;
     const tiersHtml = facts.traderTiers?.length
       ? `<div class="box"><div class="box-h">Trader Tiers <span style="color:var(--stamp)">ALL-TIME</span></div>${facts.traderTiers.slice(0, 6).map(t =>

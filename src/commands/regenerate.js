@@ -75,14 +75,14 @@ async function run(){
   // Shared with generate.js (the scheduled run) so both produce an identical paper.
   const fo = await loadFrontOffice(LEAGUE_ID, rosters, identity, week, playerMap, state.season, state.lastScored)
     .catch(e => { console.log('   (front-office data unavailable:', e.message + ')'); return {}; });
-  const { staleness, traderTiers, gradeThisTrade, revisionist, rosterDepth, rosterProfiles } = fo;
+  const { staleness, traderTiers, gradeThisTrade, revisionist, rosterDepth, rosterProfiles, weeklyTrades } = fo;
   // playoff bracket — only exists once the postseason has started (week > regWeeks).
   let bracket = null;
   if (week > state.regWeeks) {
     try { const b = await getWinners(LEAGUE_ID); if (Array.isArray(b) && b.length) bracket = b; } catch {}
   }
   const facts = { season: state.season, week, leagueId: LEAGUE_ID, leagueName: state.leagueName,
-    identity, games, images, rosterIds, regWeeks: state.regWeeks, staleness, traderTiers, gradeThisTrade, revisionist, rosterDepth, rosterProfiles, playerMap, bracket, playoffStart: state.playoffStart };
+    identity, games, images, rosterIds, regWeeks: state.regWeeks, staleness, traderTiers, gradeThisTrade, revisionist, rosterDepth, rosterProfiles, playerMap, bracket, playoffStart: state.playoffStart, weeklyTrades };
 
   const action = o.review
     ? { type: 'YEAR_REVIEW', season: state.season }

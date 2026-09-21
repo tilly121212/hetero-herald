@@ -74,19 +74,23 @@ export function collectTradesAllYears(seasons) {
 }
 
 // Last trade date per team + staleness flag (>90 days = roast bait).
-export function tradeRecency(rosterIds, trades, ownerName, now = Date.now()) {
+// Keyed by durable OWNER_ID, not roster_id: with multi-year trade data a roster slot can have
+// belonged to different managers across seasons, so we must attribute "last traded" to the
+// PERSON, then map back to their current roster for display. `owners` is the current
+// [{roster_id, owner_id}] set; trades carry owner_ids (from collectTrades/collectTradesAllYears).
+export function tradeRecency(owners, trades, ownerName, now = Date.now()) {
   const THREE_MONTHS = 90 * 24 * 60 * 60 * 1000;
-  const lastByRoster = {};
+  const lastByOwner = {};
   for (const t of trades) {
-    for (const rid of (t.roster_ids ?? [])) {
-      if (!(rid in lastByRoster) || t.when > lastByRoster[rid]) lastByRoster[rid] = t.when;
+    for (const oid of (t.owner_ids ?? [])) {
+      if (!(oid in lastByOwner) || t.when > lastByOwner[oid]) lastByOwner[oid] = t.when;
     }
   }
-  return rosterIds.map(rid => {
-    const last = lastByRoster[rid] ?? null;
+  return owners.map(({ roster_id, owner_id }) => {
+    const last = (owner_id != null && owner_id in lastByOwner) ? lastByOwner[owner_id] : null;
     const daysSince = last ? Math.floor((now - last) / (24 * 60 * 60 * 1000)) : null;
     return {
-      roster_id: rid, name: ownerName(rid),
+      roster_id, owner_id, name: ownerName(owner_id),
       lastTradeMs: last,
       lastTradeDate: last ? new Date(last).toISOString().slice(0, 10) : 'never',
       daysSince,

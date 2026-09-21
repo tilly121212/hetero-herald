@@ -8,8 +8,9 @@
 // perfect. Both commands now call this one function.
 
 import { getTransactions } from './sleeper.js';
+import { existsSync, readFileSync } from 'node:fs';
 import * as A from './analyze.js';
-import { collectTrades, tradeRecency, traderTiers, getFantasyCalcValues, gradeWeeklyTrades } from './tradedesk.js';
+import { collectTrades, collectTradesAllYears, tradeRecency, traderTiers, getFantasyCalcValues, gradeWeeklyTrades } from './tradedesk.js';
 import { recordSnapshot } from './trade-values.js';
 import { buildRevisionist, alreadySnapGraded } from './revisionist.js';
 import { valueAt, hasSnapshot } from './trade-values.js';
@@ -25,14 +26,49 @@ export async function loadFrontOffice(leagueId, rosters, identity, week, playerM
   const ownerName = (oid) => (identity.nameOfOwner ? identity.nameOfOwner(oid) : identity.nameOf(oid));
   const rosterToOwner = Object.fromEntries(rosters.map(r => [r.roster_id, r.owner_id]));
 
-  // --- trades across the season (roster ids -> durable owner ids) ---
-  const txnByWeek = {};
-  for (let wk = 1; wk <= 18; wk++) {
-    try { const t = await getTransactions(leagueId, wk); if (t?.length) txnByWeek[wk] = t; } catch {}
-  }
-  const trades = collectTrades(txnByWeek, rosterToOwner);
+  // --- trades across ALL seasons (roster ids -> durable owner ids) ---
+  // Trader Tiers and Staleness are ALL-TIME: they count every trade the league has ever made,
+  // not just this season's. Roster IDs get reused across seasons, so each season's trades are
+  // keyed to STABLE owner IDs via that season's own roster->owner map (from history.json, which
+  // build-history already maintains). If history is unavailable we fall back to the current
+  // season only — degraded but never broken.
+  const fetchSeasonTxns = async (lid) => {
+    const byWeek = {};
+    for (let wk = 1; wk <= 18; wk++) {
+      try { const t = await getTransactions(lid, wk); if (t?.length) byWeek[wk] = t; } catch {}
+    }
+    return byWeek;
+  };
 
-  const staleness = tradeRecency(rosterIds, trades, (rid) => identity.nameOf(rid))
+  let trades;
+  try {
+    // current season first (its roster->owner is the live one we already have)
+    const seasons = [{ transactionsByWeek: await fetchSeasonTxns(leagueId), rosterToOwner }];
+    // then every PRIOR season from history.json, each with its own roster->owner map
+    let history = null;
+    try {
+      if (existsSync('./data-cache/history.json')) {
+        history = JSON.parse(readFileSync('./data-cache/history.json', 'utf8'));
+      }
+    } catch { history = null; }
+    for (const s of (history?.seasons ?? [])) {
+      // skip the current league (already added above) and any season lacking a roster map
+      if (!s?.league_id || String(s.league_id) === String(leagueId)) continue;
+      if (!s.rosterToOwner || !Object.keys(s.rosterToOwner).length) continue;
+      seasons.push({ transactionsByWeek: await fetchSeasonTxns(s.league_id), rosterToOwner: s.rosterToOwner });
+    }
+    trades = collectTradesAllYears(seasons);
+  } catch {
+    // hard fallback: current season only, exactly as before
+    const txnByWeek = {};
+    for (let wk = 1; wk <= 18; wk++) {
+      try { const t = await getTransactions(leagueId, wk); if (t?.length) txnByWeek[wk] = t; } catch {}
+    }
+    trades = collectTrades(txnByWeek, rosterToOwner);
+  }
+
+  const ownersList = rosters.map(r => ({ roster_id: r.roster_id, owner_id: r.owner_id }));
+  const staleness = tradeRecency(ownersList, trades, ownerName)
     .map(t => ({ name: t.name, days: t.daysSince, never: t.daysSince == null }))
     .sort((a, b) => (b.days ?? 1e9) - (a.days ?? 1e9));
 
@@ -127,5 +163,10 @@ export async function loadFrontOffice(leagueId, rosters, identity, week, playerM
   try { rosterDepth = A.rosterDepthAnalysis(rosters, playerMap, (rid) => identity.nameOf(rid)); } catch {}
   try { rosterProfiles = A.rosterAgeProfiles(rosters, playerMap, null, (rid) => identity.nameOf(rid)); } catch {}
 
-  return { staleness, traderTiers: tiers, gradeThisTrade, revisionist, rosterDepth, rosterProfiles };
+  // Trades filed under the week being published — powers the "This Week's Trades" box, which
+  // previously read an undefined value and always said "No trades logged." Uses the same
+  // all-seasons trades list; filtered to this week.
+  const weeklyTrades = trades.filter(t => t.week === week);
+
+  return { staleness, traderTiers: tiers, gradeThisTrade, revisionist, rosterDepth, rosterProfiles, weeklyTrades };
 }
